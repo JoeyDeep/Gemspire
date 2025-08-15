@@ -4,9 +4,10 @@ return {
 		description = "A rusty pickaxe that has seen better days. It is not very effective but can be used to mine basic ores.",
 		rarity = 1,
 		stats = {
-			strength = 1,
+			strength = 5,
 			speed = 1,
 			density = 1,
+			luck = 1,
 		},
 
 		backPivotOffset = CFrame.new(0, 0, 0.6) * CFrame.Angles(0, 0, math.rad(45)),

@@ -45,6 +45,7 @@ end
 function PlayerService:getClientData()
 	local playerData = table.clone(self.profile.Data)
 	-- remove sensitive data from profile below
+	playerData.sieve_contains = engine:get("InventoryService"):getSieveStatus(self.player)
 
 	return playerData
 end
