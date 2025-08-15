@@ -11,7 +11,7 @@ function Pickaxe.init(engineModule)
 	engine = engineModule
 end
 
-local CORE_ANIMS = { "Idle", "Windup", "ReadyLoop", "Strike" }
+local CORE_ANIMS = { "Idle", "Windup", "ReadyLoop", "Strike", "Invalid" }
 
 -- new Pickaxe class, inherits from Tool
 -- safe to assume this is called when a Character is properly loaded
@@ -48,7 +48,7 @@ end
 
 function Pickaxe:_playOnly(animName, fade, weight, speed)
 	-- Hard stop every core anim, then play exactly one
-	self:_stopCoreAnims(fade or 0)
+	self:_stopCoreAnims(fade or 0.1)
 	local tr = self.animations[animName]
 	if not tr then
 		return
@@ -63,7 +63,8 @@ function Pickaxe:_playOnly(animName, fade, weight, speed)
 			tr:AdjustSpeed(speed)
 		end)
 	end
-	tr:Play(fade or 0, 1, speed)
+	tr:Play(fade or 0.1, 1, speed)
+	return tr
 end
 
 function Pickaxe:_resetStrikeState()
@@ -94,7 +95,7 @@ function Pickaxe:_resetStrikeState()
 
 	-- Short lockout to avoid accidental spam
 	self.strikeCooldown = tick() + 0.2
-	-- print("Reset strike state:", reason)
+	engine:get("SpeedManager"):dropState("Pickaxe", "freeze")
 end
 
 function Pickaxe:_inMineZone()
@@ -145,6 +146,7 @@ function Pickaxe:strike()
 
 	self.striking = true
 	self:_playOnly("Windup", 0.1, 1, self.stats.speed)
+	engine:get("SpeedManager"):setState("Pickaxe", "freeze")
 
 	-- clear old conn
 	if self.connections.windUp and self.connections.windUp.Disconnect then
@@ -196,6 +198,10 @@ function Pickaxe:readStrikeGame()
 		end)
 	end
 	self.tween = nil
+
+	-- i might be trolling
+	local truncatedScore = math.floor((1 / (math.floor((1 / (1 - barY)) * 100) / 100)) * 100) / 100
+	engine.events.Inventory:FireServer("strikePickaxe", truncatedScore)
 
 	return Promise.resolve()
 		:andThen(function()
@@ -280,7 +286,10 @@ function Pickaxe:requestStrike()
 			self:strike()
 			return true
 		else
-			print("TOO WEAK!")
+			engine:get("NotificationService").new(
+				"This material is too hard for your pickaxe to mine!",
+				{ italic = true, textColor = Color3.fromRGB(230, 75, 77) }
+			)
 			self.striking = false
 			self.awaitingRelease = false
 			self.earlyRelease = false
@@ -306,11 +315,10 @@ function Pickaxe:requestStrike()
 			return false
 		end
 	else
-		print("NOTHING TO HIT!")
 		self.striking = false
 		self.awaitingRelease = false
 		self.earlyRelease = false
-		self.strikeCooldown = tick() + 0.2
+		self.strikeCooldown = tick() + 0.75
 		local ui = Players.LocalPlayer:FindFirstChild("PlayerGui")
 		local s = ui and ui:FindFirstChild("UI") and ui.UI:FindFirstChild("StrikeGame")
 		if s then
@@ -322,12 +330,19 @@ function Pickaxe:requestStrike()
 			end)
 		end
 		self.tween = nil
-		self:_stopCoreAnims(0)
-		if self.animations and self.animations.Idle then
-			pcall(function()
-				self.animations.Idle:Play(0.1)
-			end)
-		end
+
+		engine
+			:get("NotificationService")
+			.new("Nothing to mine here!", { italic = true, textColor = Color3.fromRGB(230, 75, 77) })
+
+		Promise.fromEvent(self:_playOnly("Invalid").Stopped):andThen(function()
+			self:_stopCoreAnims(0)
+			if self.animations and self.animations.Idle then
+				pcall(function()
+					self.animations.Idle:Play(0.1)
+				end)
+			end
+		end)
 		return false
 	end
 end
@@ -358,6 +373,13 @@ function Pickaxe:enableInput()
 		if self.strikePromise ~= nil then
 			return
 		end -- only blocks while Windup is pending
+
+		-- sieve is full
+		local PlayerService = engine:get("PlayerService")
+		if PlayerService.Data.sieve_contains.now == PlayerService.Data.sieve_contains.max then
+			engine:get("Sieve"):warnFull()
+			return
+		end
 
 		self.earlyRelease = false
 
@@ -471,6 +493,8 @@ function Pickaxe:equip()
 
 	self.animations.Equip:Play()
 	self.animations.Equip:AdjustSpeed(1.5)
+
+	engine:get("Sieve"):start(engine:get("PlayerService").Data.sieve_contains)
 end
 
 function Pickaxe:unequip()
@@ -488,6 +512,8 @@ function Pickaxe:unequip()
 	self.animations.Idle:Stop()
 	self.animations.Equip.TimePosition = self.animations.Equip.Length + 0.01
 	self.animations.Equip:Play(0, 1, -1.5)
+
+	engine:get("Sieve"):stop()
 end
 
 function Pickaxe:destroy()

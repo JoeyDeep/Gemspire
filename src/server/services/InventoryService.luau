@@ -36,6 +36,8 @@ function InventoryService.init(engineModule)
 			InventoryService:equipPickaxe(player, data)
 		elseif topic == "unequipPickaxe" then
 			InventoryService:unequipPickaxe(player, data)
+		elseif topic == "strikePickaxe" then
+			InventoryService:strikePickaxe(player, data)
 		end
 	end)
 end
@@ -49,8 +51,20 @@ function InventoryService.register(playerClass)
 
 	-- draw the player's inventory on their character
 	InventoryService.draw(playerClass)
-	player.CharacterAdded:Connect(function()
+	player.CharacterAdded:Connect(function(character)
 		InventoryService.draw(playerClass)
+
+		-- do not allow characters to collide with one another
+		for _, basePart in pairs(character:GetDescendants()) do
+			if basePart:IsA("BasePart") then
+				basePart.CollisionGroup = "Character"
+			end
+		end
+		character.DescendantAdded:Connect(function(descendant)
+			if descendant:IsA("BasePart") then
+				descendant.CollisionGroup = "Character"
+			end
+		end)
 	end)
 end
 
@@ -75,6 +89,51 @@ function InventoryService.draw(playerClass)
 	pickaxeModel.Handle.Motor6D.Part0 = character.Torso
 	pickaxeModel.Handle.Motor6D.C0 = pickaxeData.backPivotOffset
 	pickaxeModel.Parent = itemsFolder
+end
+
+function InventoryService:getSieveStatus(player)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+	local Sieves = engine:get("Sieves")
+	local equippedSieve = playerData.equipped.sieve
+	local sieveData = Sieves[equippedSieve].stats
+
+	local scoopData = playerData.sieve_contains
+	local inSieveNow = 0
+	local contentsQuality = 0
+
+	for _, scoop in pairs(scoopData) do
+		inSieveNow += scoop.amount
+		contentsQuality += scoop.score
+	end
+	-- quality determined by average scoop's mini game score
+	contentsQuality = (contentsQuality == 0 and 0) or (math.floor((contentsQuality / #scoopData) * 100) / 100) * 100
+
+	return { now = inSieveNow, max = sieveData and sieveData.capacity or 0, quality = contentsQuality }
+end
+
+---------------------
+-- pickaxe methods --
+---------------------
+function InventoryService:strikePickaxe(player, score)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+	local Pickaxes = engine:get("Pickaxes")
+
+	local equippedPickaxe = playerData.equipped.pickaxe
+	local pickaxeData = Pickaxes[equippedPickaxe].stats
+	local sieveStatus = InventoryService:getSieveStatus(player)
+
+	if equippedPickaxe and sieveStatus.now < sieveStatus.max then
+		local amount = math.min(pickaxeData.strength, sieveStatus.max - sieveStatus.now)
+		table.insert(playerData.sieve_contains, {
+			name = equippedPickaxe,
+			amount = amount,
+			score = score,
+		})
+
+		engine.events.Inventory:FireClient(player, "sieveUpdate", InventoryService:getSieveStatus(player))
+	end
 end
 
 function InventoryService:equipPickaxe(player, pickaxeName)
