@@ -1,8 +1,9 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
+local Input = require(ReplicatedStorage.Packages.Input)
 local Promise = require(ReplicatedStorage.Packages.Promise)
+local Trove = require(ReplicatedStorage.Packages.Trove)
 local Pickaxe = {}
 Pickaxe.__index = Pickaxe
 
@@ -30,6 +31,7 @@ function Pickaxe.new(name, toolClass)
 
 	self.strikeCooldown = tick()
 	self.connections = {}
+	self.inputTrove = Trove.new()
 
 	self:initAnimations()
 
@@ -350,17 +352,7 @@ end
 function Pickaxe:enableInput()
 	self:_resetStrikeState("enable-input") -- puts us in idle & clears flags, sets short cooldown
 
-	self.connections.inputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed then
-			return
-		end
-		if
-			input.UserInputType ~= Enum.UserInputType.MouseButton1
-			and input.UserInputType ~= Enum.UserInputType.Touch
-		then
-			return
-		end
-
+	local function processInput()
 		if not self.toolClass.equipped then
 			return
 		end
@@ -417,19 +409,9 @@ function Pickaxe:enableInput()
 					self.strikePromise = nil
 				end
 			end)
-	end)
+	end
 
-	self.connections.inputEnded = UserInputService.InputEnded:Connect(function(input, gameProcessed)
-		if gameProcessed then
-			return
-		end
-		if
-			input.UserInputType ~= Enum.UserInputType.MouseButton1
-			and input.UserInputType ~= Enum.UserInputType.Touch
-		then
-			return
-		end
-
+	local function processRelease()
 		-- If we never started a strike, ignore
 		if not self.striking then
 			return
@@ -454,20 +436,43 @@ function Pickaxe:enableInput()
 				-- it's ok to clear any leftover windup sentinel, but not required
 				self.strikePromise = nil
 			end)
+	end
+
+	local InputData = engine:get("InputData")
+
+	self.mouseInput = self.inputTrove:Add(Input.Mouse.new(), "Destroy")
+	self.mouseInput.LeftDown:Connect(processInput)
+	self.mouseInput.LeftUp:Connect(processRelease)
+
+	self.touchInput = self.inputTrove:Add(Input.Touch.new(), "Destroy")
+	self.touchInput.TouchStarted:Connect(processInput)
+	self.touchInput.TouchEnded:Connect(processRelease)
+
+	self.gamepadInput = self.inputTrove:Add(Input.Gamepad.new(), "Destroy")
+	self.gamepadInput.ButtonDown:Connect(function(button, processed)
+		if processed then
+			return
+		end
+
+		if InputData.Inputs.Pickaxe.Gamepad.Input == button then
+			processInput()
+		end
+	end)
+	self.gamepadInput.ButtonUp:Connect(function(button, processed)
+		if processed then
+			return
+		end
+
+		if InputData.Inputs.Pickaxe.Gamepad.Input == button then
+			processRelease()
+		end
 	end)
 
 	self.cameraShaker:Start()
 end
 
 function Pickaxe:disableInput()
-	if self.connections.inputBegan then
-		self.connections.inputBegan:Disconnect()
-		self.connections.inputBegan = nil
-	end
-	if self.connections.inputEnded then
-		self.connections.inputEnded:Disconnect()
-		self.connections.inputEnded = nil
-	end
+	self.inputTrove:Destroy()
 
 	self.cameraShaker:Stop()
 	self:_resetStrikeState("disable-input")
