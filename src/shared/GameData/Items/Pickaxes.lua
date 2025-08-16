@@ -10,7 +10,7 @@ return {
 			luck = 1,
 		},
 
-		backPivotOffset = CFrame.new(0, 0, 0.6) * CFrame.Angles(0, 0, math.rad(45)),
+		backPivotOffset = CFrame.new(1, -1, 0) * CFrame.Angles(0, math.rad(90), math.rad(120)), --CFrame.new(0, 0, 0.6) * CFrame.Angles(0, 0, math.rad(45)),
 		heldPivotOffset = CFrame.new(0, -1, -0.7) * CFrame.Angles(0, math.rad(-90), math.rad(90)),
 	},
 }

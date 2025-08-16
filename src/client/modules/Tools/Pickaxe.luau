@@ -136,7 +136,7 @@ function Pickaxe:strike()
 	local QuickTween = engine:get("QuickTween")
 	local character = Players.LocalPlayer.Character
 
-	-- terrain sanity (your original)
+	-- terrain sanity
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = { workspace.Terrain }
@@ -251,6 +251,9 @@ function Pickaxe:readStrikeGame()
 			self:_playOnly("Strike", 0)
 			self.animations.Strike:GetMarkerReachedSignal("Hit"):Once(function()
 				engine:get("Sound"):playLocalFromRandom("PickaxeStrike", self.model.Handle)
+				if self.gamepadInput.SupportsVibration then
+					self.gamepadInput:PulseMotor(Enum.VibrationMotor.Large, 0.6, 0.1)
+				end
 				self.cameraShaker:ShakeOnce(1.5, 5, 0.1, 0.3)
 			end)
 			return Promise.fromEvent(self.animations.Strike.Stopped)
@@ -362,6 +365,9 @@ function Pickaxe:enableInput()
 		if self.striking or self.awaitingRelease then
 			return
 		end
+		if self.sifting then
+			return
+		end
 		if self.strikePromise ~= nil then
 			return
 		end -- only blocks while Windup is pending
@@ -453,7 +459,6 @@ function Pickaxe:enableInput()
 		if processed then
 			return
 		end
-
 		if InputData.Inputs.Pickaxe.Gamepad.Input == button then
 			processInput()
 		end
@@ -462,7 +467,6 @@ function Pickaxe:enableInput()
 		if processed then
 			return
 		end
-
 		if InputData.Inputs.Pickaxe.Gamepad.Input == button then
 			processRelease()
 		end
@@ -497,7 +501,7 @@ function Pickaxe:equip()
 	self:enableInput()
 
 	self.animations.Equip:Play()
-	self.animations.Equip:AdjustSpeed(1.5)
+	-- self.animations.Equip:AdjustSpeed(1.5)
 
 	engine:get("Sieve"):start(engine:get("PlayerService").Data.sieve_contains)
 end
@@ -516,7 +520,7 @@ function Pickaxe:unequip()
 
 	self.animations.Idle:Stop()
 	self.animations.Equip.TimePosition = self.animations.Equip.Length + 0.01
-	self.animations.Equip:Play(0, 1, -1.5)
+	self.animations.Equip:Play(0, 1, -1)
 
 	engine:get("Sieve"):stop()
 end

@@ -15,7 +15,7 @@ return {
 		equipment = {},
 	},
 	quests = {},
-	sieve_contains = {},
+	sieve_contains = {}, -- { now = 0, max = 0, quality = 0-100 }
 
 	statistics = {
 		found_loot = {}, -- ["loot_name"] = {count = x, largest = y}

@@ -38,6 +38,8 @@ function InventoryService.init(engineModule)
 			InventoryService:unequipPickaxe(player, data)
 		elseif topic == "strikePickaxe" then
 			InventoryService:strikePickaxe(player, data)
+		elseif topic == "equipSieve" then
+			InventoryService:equipSieve(player)
 		end
 	end)
 end
@@ -111,6 +113,12 @@ function InventoryService:getSieveStatus(player)
 
 	return { now = inSieveNow, max = sieveData and sieveData.capacity or 0, quality = contentsQuality }
 end
+
+-------------------
+-- sieve methods --
+-------------------
+
+function InventoryService:equipSieve(player) end
 
 ---------------------
 -- pickaxe methods --
