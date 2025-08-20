@@ -3,9 +3,10 @@ return {
 		name = "Rock",
 		description = "A common rock",
 		rarity = 1,
+		color = Color3.fromRGB(177, 177, 177),
 
 		value_per_kg = 100,
-		kg_range = { min = 0.1, max = 1 },
+		kg_range = { min = 1, max = 3 },
 		traits = {
 			none = 0.998,
 			ancient = 0.001,
@@ -16,6 +17,7 @@ return {
 		name = "Quartz",
 		description = "A common mineral with a crystalline structure.",
 		rarity = 1,
+		color = Color3.fromRGB(228, 228, 228),
 
 		value_per_kg = 150,
 		kg_range = { min = 0.1, max = 1 },
@@ -29,6 +31,7 @@ return {
 		name = "Feldspar",
 		description = "A group of rock-forming minerals that make up a large part of the Earth's crust.",
 		rarity = 1,
+		color = Color3.fromRGB(184, 184, 184),
 
 		value_per_kg = 200,
 		kg_range = { min = 0.1, max = 1 },

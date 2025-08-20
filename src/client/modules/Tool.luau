@@ -18,7 +18,7 @@ function Tool.new(name, type)
 	local self = setmetatable({}, Tool)
 
 	self.name = name
-	self.type = type -- e.g., "pickaxe", "sifter"
+	self.type = type -- e.g., "pickaxe", "kit"
 	self.position = Tool.countTools() + 1 -- used for inventory keybind (e.g. 1, 2, 3, etc.)
 	self.equipCooldown = tick()
 	self.equipped = false

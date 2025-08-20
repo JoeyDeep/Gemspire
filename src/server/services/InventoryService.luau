@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InventoryService = {}
 
@@ -19,9 +20,14 @@ function InventoryService.init(engineModule)
 		for _, tool in pairs(category:GetChildren()) do
 			if tool:IsA("Model") then
 				for _, part in pairs(tool:GetChildren()) do
-					if part:IsA("BasePart") and not part:FindFirstChild("Motor6D") and part.Name ~= "Handle" then
-						local motor = Instance.new("Motor6D")
-						motor.Name = "Motor6D"
+					if
+						part:IsA("BasePart")
+						and not part:FindFirstChild("Weld")
+						and part.Name ~= "Handle"
+						and not part:GetAttribute("NoWeld")
+					then
+						local motor = Instance.new("WeldConstraint")
+						motor.Name = "Weld"
 						motor.Part0 = tool.Handle
 						motor.Part1 = part
 						motor.Parent = part
@@ -38,6 +44,12 @@ function InventoryService.init(engineModule)
 			InventoryService:unequipPickaxe(player, data)
 		elseif topic == "strikePickaxe" then
 			InventoryService:strikePickaxe(player, data)
+		elseif topic == "equipKit" then
+			InventoryService:equipRefiningKit(player)
+		elseif topic == "smashReplicate" then
+			InventoryService:smashReplicate(player, data)
+		elseif topic == "finishRefining" then
+			InventoryService:finishRefining(player)
 		end
 	end)
 end
@@ -45,13 +57,7 @@ end
 function InventoryService.register(playerClass)
 	local player = playerClass.player
 
-	if not player.Character then
-		player.CharacterAdded:Wait()
-	end
-
-	-- draw the player's inventory on their character
-	InventoryService.draw(playerClass)
-	player.CharacterAdded:Connect(function(character)
+	local function CharacterAdded(character)
 		InventoryService.draw(playerClass)
 
 		-- do not allow characters to collide with one another
@@ -65,11 +71,19 @@ function InventoryService.register(playerClass)
 				descendant.CollisionGroup = "Character"
 			end
 		end)
-	end)
+
+		character.Parent = workspace.Entities.Characters
+	end
+
+	if player.Character and player.Character:IsDescendantOf(workspace) then
+		CharacterAdded(player.Character)
+	end
+	player.CharacterAdded:Connect(CharacterAdded)
 end
 
 function InventoryService.draw(playerClass)
 	local Pickaxes = engine:get("Pickaxes")
+	local Kits = engine:get("Kits")
 	local character = playerClass.player.Character
 
 	if character:FindFirstChild("Items") then
@@ -89,27 +103,226 @@ function InventoryService.draw(playerClass)
 	pickaxeModel.Handle.Motor6D.Part0 = character.Torso
 	pickaxeModel.Handle.Motor6D.C0 = pickaxeData.backPivotOffset
 	pickaxeModel.Parent = itemsFolder
+
+	-- put container on player's back
+	local equippedContainer = Kits[playerClass.profile.Data.equipped.kit].container
+	local kitData = Kits[playerClass.profile.Data.equipped.kit]
+	local containerModel = ReplicatedStorage.Storage.Tools.Containers[equippedContainer]:Clone()
+	containerModel:PivotTo(character:GetPivot())
+	containerModel.Handle.Motor6D.Part0 = character.Torso
+	containerModel.Handle.Motor6D.C0 = kitData.containerPivotOffset
+	containerModel.Parent = itemsFolder
+
+	-- show container's fill
+	local rubbleMotor = containerModel.Handle.RubbleMotor
+	local fillMotor = containerModel.Handle.FillMotor
+	local containerStatus = InventoryService:getContainerStatus(playerClass.player)
+	local fillOffsets = kitData.containerFillOffsets
+	local progressCF = fillOffsets.Min:Lerp(fillOffsets.Max, containerStatus.now / containerStatus.max)
+	if containerStatus.now > 0 then
+		rubbleMotor.C0 = progressCF
+		fillMotor.C0 = progressCF:ToWorldSpace(fillOffsets.RubbleOffset)
+		containerModel.Rubble.Transparency = 0
+		containerModel.FillPlane.Transparency = 0
+	else
+		containerModel.Rubble.Transparency = 1
+		containerModel.FillPlane.Transparency = 1
+	end
 end
 
-function InventoryService:getSieveStatus(player)
+function InventoryService:getContainerStatus(player)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:GetData(player)
-	local Sieves = engine:get("Sieves")
-	local equippedSieve = playerData.equipped.sieve
-	local sieveData = Sieves[equippedSieve].stats
+	local Kits = engine:get("Kits")
+	local equippedKit = playerData.equipped.kit
+	local kitData = Kits[equippedKit].stats
 
-	local scoopData = playerData.sieve_contains
-	local inSieveNow = 0
+	local scoopData = playerData.container
+	local inContainerNow = 0
 	local contentsQuality = 0
 
 	for _, scoop in pairs(scoopData) do
-		inSieveNow += scoop.amount
+		inContainerNow += scoop.amount
 		contentsQuality += scoop.score
 	end
 	-- quality determined by average scoop's mini game score
 	contentsQuality = (contentsQuality == 0 and 0) or (math.floor((contentsQuality / #scoopData) * 100) / 100) * 100
 
-	return { now = inSieveNow, max = sieveData and sieveData.capacity or 0, quality = contentsQuality }
+	return { now = inContainerNow, max = kitData and kitData.capacity or 0, quality = contentsQuality }
+end
+
+function InventoryService:spawnLootInTray(trayModel, rewards)
+	local lootStorage = ReplicatedStorage.Storage.Loot
+
+	local rng = Random.new()
+	local traySize = trayModel:GetExtentsSize()
+	local middlePos = trayModel.Handle.Middle.WorldPosition
+	local lootFolder = Instance.new("Folder")
+	lootFolder.Name = "Loot"
+	lootFolder.Parent = trayModel
+
+	for _, reward in pairs(rewards) do
+		local lootObj = lootStorage[reward.lootKey]:Clone()
+		local weld = Instance.new("WeldConstraint")
+		lootObj.Size *= Vector3.new(reward.kg, reward.kg, reward.kg)
+		local halfSize = lootObj.Size / 2
+		lootObj.CollisionGroup = "TrayLoot"
+		lootObj.Position = middlePos
+			+ Vector3.new(
+				rng:NextNumber(-traySize.X / 2 + halfSize.X, traySize.X / 2 - halfSize.X),
+				rng:NextNumber(halfSize.Y, halfSize.Y * 2),
+				rng:NextNumber(-traySize.Z / 2 + halfSize.Z, traySize.Z / 2 - halfSize.Z)
+			)
+		lootObj.Orientation = Vector3.new(rng:NextNumber(0, 360), rng:NextNumber(0, 360), rng:NextNumber(0, 360))
+		lootObj.Parent = lootFolder
+		lootObj.Anchored = false
+		weld.Part1 = trayModel.Handle
+		weld.Part0 = lootObj
+		weld.Parent = lootObj
+	end
+end
+
+-----------------
+-- kit methods --
+-----------------
+
+function InventoryService:equipRefiningKit(player)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+	local Kits = engine:get("Kits")
+	local LootRNG = engine:get("LootRNG")
+
+	local character = player.Character
+	local equippedKit = playerData.equipped.kit
+	local kitData = Kits[equippedKit]
+
+	local equippedMallet = kitData.mallet
+	local equippedTray = kitData.tray
+	local equippedPickaxe = playerData.equipped.pickaxe
+
+	for _, pickaxePart in pairs(character.Items[equippedPickaxe]:GetChildren()) do
+		if pickaxePart:IsA("BasePart") then
+			pickaxePart:SetAttribute("Transparency", pickaxePart.Transparency)
+			pickaxePart.Transparency = 1
+		end
+	end
+
+	local malletModel = ReplicatedStorage.Storage.Tools.Mallets[equippedMallet]:Clone()
+	malletModel.Handle.Motor6D.Part0 = character["Right Arm"]
+	malletModel.Handle.Motor6D.C0 = kitData.malletHoldOffset
+	malletModel.Name = `{equippedMallet}_Mallet`
+	malletModel.Parent = character
+
+	local trayModel = ReplicatedStorage.Storage.Tools.Trays[equippedTray]:Clone()
+	trayModel.Handle.Motor6D.Part0 = character["Left Arm"]
+	trayModel.Handle.Motor6D.C0 = kitData.trayHoldOffset
+	trayModel.Name = `{equippedTray}_Tray`
+	trayModel.Parent = character
+	for _, basePart in pairs(trayModel:GetDescendants()) do
+		if basePart:IsA("BasePart") then
+			basePart.CollisionGroup = "Tray"
+			basePart.CanCollide = true
+		end
+	end
+
+	-- determine findings
+	local rewards = LootRNG.RollFromEntries({
+		entries = playerData.container,
+		kit = kitData,
+		pickaxes = engine:get("Pickaxes"),
+		zones = engine:get("MineZones"),
+		lootDefs = engine:get("Loot"),
+		baseLuck = 1,
+		opts = {
+			rng = Random.new(player.UserId),
+		},
+	})
+
+	local containerStatus = InventoryService:getContainerStatus(player)
+	local lerpAlpha = 1 - math.clamp((containerStatus.now / containerStatus.max), 0, 1)
+	trayModel.RefineEntities.FillPlane.Motor6D.C0 =
+		kitData.rubbleMotorData.Max:Lerp(kitData.rubbleMotorData.Min, lerpAlpha)
+
+	for _, rubblePart in pairs(trayModel.RefineEntities.Rubble:GetChildren()) do
+		if rubblePart:IsA("BasePart") then
+			rubblePart:SetAttribute("OriginalSize", rubblePart.Size)
+		end
+	end
+
+	PlayerService:Get(player).localData.refineProgress = containerStatus.now
+
+	for _, loot in pairs(rewards) do
+		loot.kg = math.floor(loot.kg * 100) / 100 -- round to 2 decimal places
+		table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg })
+		if not playerData.statistics.found_loot[loot.lootKey] then
+			-- player found this loot for first time
+			playerData.statistics.found_loot[loot.lootKey] = { count = 1, largest = loot.kg }
+		else
+			playerData.statistics.found_loot[loot.lootKey].count += 1
+			if loot.kg > playerData.statistics.found_loot[loot.lootKey].largest then
+				-- player found their personal heaviest of this kind of loot
+				playerData.statistics.found_loot[loot.lootKey].largest = loot.kg
+			end
+		end
+	end
+
+	InventoryService:spawnLootInTray(trayModel, rewards)
+
+	engine.events.Inventory:FireClient(player, "readyToRefine")
+	playerData.container = {}
+end
+
+function InventoryService:finishRefining(player)
+	local PlayerService = engine:get("PlayerService")
+	local Kits = engine:get("Kits")
+	local playerData = PlayerService:GetData(player)
+
+	local equippedPickaxe = playerData.equipped.pickaxe
+	local equippedTray = Kits[playerData.equipped.kit].tray
+	local equippedMallet = Kits[playerData.equipped.kit].mallet
+
+	-- remove refining kit from character
+	local character = player.Character
+	if character then
+		local refiningKit = character:FindFirstChild(`{equippedTray}_Tray`)
+		if refiningKit then
+			refiningKit:Destroy()
+		end
+		local mallet = character:FindFirstChild(`{equippedMallet}_Mallet`)
+		if mallet then
+			mallet:Destroy()
+		end
+	end
+
+	for _, pickaxePart in pairs(character.Items[equippedPickaxe]:GetChildren()) do
+		local transparency = pickaxePart:GetAttribute("Transparency")
+		if pickaxePart:IsA("BasePart") and transparency then
+			pickaxePart.Transparency = transparency
+		end
+	end
+
+	engine.events.Inventory:FireClient(player, "kitUpdate", InventoryService:getContainerStatus(player))
+end
+
+function InventoryService:smashReplicate(player, data)
+	local PlayerService = engine:get("PlayerService")
+
+	local playerClass = PlayerService:Get(player)
+	local playerData = playerClass.profile.Data
+	local kitData = engine:get("Kits")[playerData.equipped.kit]
+
+	playerClass.localData.refineProgress -= kitData.stats.malletStrength
+
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= player then
+			engine.events.Inventory:FireClient(plr, "smashReplicate", {
+				hostPlayerName = player.Name,
+				equippedKit = playerData.equipped.kit,
+				progress = playerClass.localData.refineProgress,
+				targetRubble = data.targetRubble,
+			})
+		end
+	end
 end
 
 ---------------------
@@ -119,20 +332,39 @@ function InventoryService:strikePickaxe(player, score)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:GetData(player)
 	local Pickaxes = engine:get("Pickaxes")
+	local MineZones = engine:get("MineZones")
 
 	local equippedPickaxe = playerData.equipped.pickaxe
 	local pickaxeData = Pickaxes[equippedPickaxe].stats
-	local sieveStatus = InventoryService:getSieveStatus(player)
+	local refiningKitStatus = InventoryService:getContainerStatus(player)
 
-	if equippedPickaxe and sieveStatus.now < sieveStatus.max then
-		local amount = math.min(pickaxeData.strength, sieveStatus.max - sieveStatus.now)
-		table.insert(playerData.sieve_contains, {
-			name = equippedPickaxe,
+	local character = player.Character
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { workspace.Entities.MineZones }
+
+	local zone
+	local zoneCast = workspace:Raycast(character:GetPivot().Position, Vector3.new(0, -10, 0), params)
+	if zoneCast and zoneCast.Instance then
+		zone = zoneCast.Instance.Parent.Name
+	end
+
+	if
+		equippedPickaxe
+		and refiningKitStatus.now < refiningKitStatus.max
+		and zone
+		and MineZones[zone]
+		and MineZones[zone].minDensity <= pickaxeData.strength
+	then
+		local amount = math.min(pickaxeData.strength, refiningKitStatus.max - refiningKitStatus.now)
+		table.insert(playerData.container, {
+			pickaxe = equippedPickaxe,
 			amount = amount,
 			score = score,
+			zone = zone,
 		})
 
-		engine.events.Inventory:FireClient(player, "sieveUpdate", InventoryService:getSieveStatus(player))
+		engine.events.Inventory:FireClient(player, "kitUpdate", InventoryService:getContainerStatus(player))
 	end
 end
 

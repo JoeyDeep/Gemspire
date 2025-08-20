@@ -3,15 +3,21 @@ return {
 		[Enum.UserInputType.MouseButton1] = "rbxassetid://117700853912103",
 		[Enum.UserInputType.MouseButton2] = "rbxassetid://139700294768718",
 		[Enum.UserInputType.Touch] = "rbxassetid://76626894754524",
+
+		[Enum.KeyCode.E] = "rbxassetid://93714754759492",
+
+		[Enum.KeyCode.ButtonA] = "rbxassetid://133270261665784",
+		[Enum.KeyCode.ButtonX] = "rbxassetid://124728416407953",
+		[Enum.KeyCode.ButtonR2] = "rbxassetid://87986095147448",
 	},
 
 	Inputs = {
 		Pickaxe = {
-			Keyboard = {
+			MouseKeyboard = {
 				Type = "UserInputType",
 				Input = Enum.UserInputType.MouseButton1,
 			},
-			Mobile = {
+			Touch = {
 				Type = "UserInputType",
 				Input = Enum.UserInputType.Touch,
 			},
@@ -21,17 +27,33 @@ return {
 			},
 		},
 
-		Sieve = {
-			Keyboard = {
-				Type = "UserInputType",
-				Input = Enum.UserInputType.MouseButton2,
+		Refine = {
+			MouseKeyboard = {
+				Type = "KeyCode",
+				Input = Enum.KeyCode.E,
 			},
 
-			-- Mobile handled by button
+			-- Mobile handled by UI button
 
 			Gamepad = {
 				Type = "KeyCode",
-				Input = Enum.KeyCode.ButtonB, -- Right-Diamond Right
+				Input = Enum.KeyCode.ButtonX,
+			},
+		},
+		MalletSmash = {
+			MouseKeyboard = {
+				Type = "UserInputType",
+				Input = Enum.UserInputType.MouseButton1,
+			},
+
+			Touch = {
+				Type = "UserInputType",
+				Input = Enum.UserInputType.Touch,
+			},
+
+			Gamepad = {
+				Type = "KeyCode",
+				Input = Enum.KeyCode.ButtonA,
 			},
 		},
 	},
