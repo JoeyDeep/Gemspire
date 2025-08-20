@@ -5,17 +5,17 @@ return {
 
 	inventory = {
 		pickaxes = { "rusty" },
-		sieves = { "basic" },
+		kit = { "basic" },
 		loot = {},
 		equipment = {},
 	},
 	equipped = {
 		pickaxe = "rusty",
-		sieve = "basic",
+		kit = "basic",
 		equipment = {},
 	},
 	quests = {},
-	sieve_contains = {}, -- { now = 0, max = 0, quality = 0-100 }
+	container = {}, -- { now = 0, max = 0, quality = 0-100 }
 
 	statistics = {
 		found_loot = {}, -- ["loot_name"] = {count = x, largest = y}

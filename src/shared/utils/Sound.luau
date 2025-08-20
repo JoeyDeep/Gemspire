@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Sound = {
 	registry = {},
 	folderRegistry = {},
@@ -13,6 +14,18 @@ function Sound.init()
 		elseif sound:IsA("Folder") and not Sound.folderRegistry[sound.Name] then
 			Sound.folderRegistry[sound.Name] = sound
 		end
+	end
+
+	local SoundEvent
+	if RunService:IsServer() then
+		SoundEvent = Instance.new("RemoteEvent")
+		SoundEvent.Name = "Sound"
+		SoundEvent.Parent = ReplicatedStorage.Events
+	else
+		SoundEvent = ReplicatedStorage.Events:WaitForChild("Sound")
+		SoundEvent.OnClientEvent:Connect(function(fncName, params)
+			Sound[fncName](Sound, unpack(params))
+		end)
 	end
 end
 
@@ -31,6 +44,8 @@ function Sound:playGlobal(name, volume)
 	clonedSound.Ended:Connect(function()
 		clonedSound:Destroy()
 	end)
+
+	return clonedSound
 end
 
 function Sound:playGlobalFromRandom(folderName, volume)
@@ -53,7 +68,7 @@ function Sound:playGlobalFromRandom(folderName, volume)
 	end
 
 	local randomSound = sounds[math.random(1, #sounds)]
-	self:playGlobal(randomSound.Name, volume)
+	return self:playGlobal(randomSound.Name, volume)
 end
 
 function Sound:playLocalFromRandom(folderName, parent, volume)
@@ -76,7 +91,7 @@ function Sound:playLocalFromRandom(folderName, parent, volume)
 	end
 
 	local randomSound = sounds[math.random(1, #sounds)]
-	self:playLocal(randomSound.Name, parent, volume)
+	return self:playLocal(randomSound.Name, parent, volume)
 end
 
 function Sound:playLocal(name, parent, volume)
@@ -85,15 +100,20 @@ function Sound:playLocal(name, parent, volume)
 		warn(`Sound {name} not found in registry.`)
 		return
 	end
+	if not parent then
+		return
+	end
 
 	local clonedSound = sound:Clone()
-	clonedSound.Volume = volume or 1
+	clonedSound.Volume = volume or sound.Volume
 	clonedSound.Parent = parent
 	clonedSound:Play()
 
 	clonedSound.Ended:Connect(function()
 		clonedSound:Destroy()
 	end)
+
+	return clonedSound
 end
 
 return Sound

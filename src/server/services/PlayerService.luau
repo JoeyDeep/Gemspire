@@ -33,7 +33,7 @@ function PlayerService.init(engineModule)
 	end
 
 	-- future uses
-	engine.events.PlayerData.OnServerEvent:Connect(function(player, topic, data) end)
+	-- engine.events.PlayerData.OnServerEvent:Connect(function(player, topic, data) end)
 end
 
 -- called when a new player joins and their profile is fully server-loaded
@@ -45,7 +45,7 @@ end
 function PlayerService:getClientData()
 	local playerData = table.clone(self.profile.Data)
 	-- remove sensitive data from profile below
-	playerData.sieve_contains = engine:get("InventoryService"):getSieveStatus(self.player)
+	playerData.container = engine:get("InventoryService"):getContainerStatus(self.player)
 
 	return playerData
 end
@@ -65,6 +65,7 @@ function PlayerService.new(player)
 		if player:IsDescendantOf(Players) == true then -- successfully loaded profile
 			self.player = player
 			self.profile = profile
+			self.localData = {}
 		else
 			profile:Release() -- loaded their profile, but player is not in the game. release the profile.
 		end

@@ -7,8 +7,14 @@ function InventoryService.init(engineModule)
 	engine = engineModule
 
 	engine.events.Inventory.OnClientEvent:Connect(function(topic, data)
-		if topic == "sieveUpdate" then
-			InventoryService:updateSieveStatus(data)
+		if topic == "kitUpdate" then
+			InventoryService:updateRefiningKitStatus(data)
+		elseif topic == "readyToRefine" then
+			engine:get("RefiningKit"):setupSmash()
+		elseif topic == "refineReplicate" then
+			engine
+				:get("RefineReplicate")
+				:setProgress(Players[data.hostPlayerName], data.equippedKit, data.progress, data.targetRubble)
 		end
 	end)
 end
@@ -24,9 +30,9 @@ function InventoryService.register(playerData)
 	InventoryService.tools.pickaxe = engine:get("Tool").new(playerData.equipped.pickaxe, "Pickaxe")
 end
 
-function InventoryService:updateSieveStatus(data)
-	engine:get("PlayerService").Data.sieve_contains = data
-	engine:get("Sieve"):update(data)
+function InventoryService:updateRefiningKitStatus(data)
+	engine:get("PlayerService").Data.container = data
+	engine:get("RefiningKit"):update(data)
 end
 
 return InventoryService

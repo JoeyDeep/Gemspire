@@ -27,7 +27,7 @@ return {
 			},
 		},
 
-		Sieve = {
+		Refine = {
 			MouseKeyboard = {
 				Type = "KeyCode",
 				Input = Enum.KeyCode.E,
@@ -40,7 +40,7 @@ return {
 				Input = Enum.KeyCode.ButtonX,
 			},
 		},
-		SieveShake = {
+		MalletSmash = {
 			MouseKeyboard = {
 				Type = "UserInputType",
 				Input = Enum.UserInputType.MouseButton1,

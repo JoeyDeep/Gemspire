@@ -110,7 +110,7 @@ function Pickaxe:_inMineZone()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = { workspace.Entities.MineZones }
 
-	local cast = workspace:Raycast(character:GetPivot().Position, Vector3.new(0, -20, 0), params)
+	local cast = workspace:Raycast(character:GetPivot().Position, Vector3.new(0, -5, 0), params)
 	if not cast then
 		return false, nil
 	end
@@ -365,17 +365,17 @@ function Pickaxe:enableInput()
 		if self.striking or self.awaitingRelease then
 			return
 		end
-		if self.sifting then
+		if self.refining then
 			return
 		end
 		if self.strikePromise ~= nil then
 			return
 		end -- only blocks while Windup is pending
 
-		-- sieve is full
+		-- container is full
 		local PlayerService = engine:get("PlayerService")
-		if PlayerService.Data.sieve_contains.now == PlayerService.Data.sieve_contains.max then
-			engine:get("Sieve"):warnFull()
+		if PlayerService.Data.container.now == PlayerService.Data.container.max then
+			engine:get("RefiningKit"):warnFull()
 			return
 		end
 
@@ -503,7 +503,7 @@ function Pickaxe:equip()
 	self.animations.Equip:Play()
 	-- self.animations.Equip:AdjustSpeed(1.5)
 
-	engine:get("Sieve"):start(engine:get("PlayerService").Data.sieve_contains)
+	engine:get("RefiningKit"):start(engine:get("PlayerService").Data.container)
 end
 
 function Pickaxe:unequip()
@@ -522,7 +522,7 @@ function Pickaxe:unequip()
 	self.animations.Equip.TimePosition = self.animations.Equip.Length + 0.01
 	self.animations.Equip:Play(0, 1, -1)
 
-	engine:get("Sieve"):stop()
+	engine:get("RefiningKit"):stop()
 end
 
 function Pickaxe:destroy()
