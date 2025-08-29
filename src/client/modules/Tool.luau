@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Icons = require(ReplicatedStorage.Shared.GameData.Icons)
 local QuickTween = require(ReplicatedStorage.Shared.utils.QuickTween)
 local Sound = require(ReplicatedStorage.Shared.utils.Sound)
+
 local Tool = {
 	liveTools = {},
 }
@@ -13,19 +14,20 @@ function Tool.init(engineModule)
 	engine = engineModule
 end
 
--- new Tool class, used for Backpack & Inventory control
 function Tool.new(name, type)
 	local self = setmetatable({}, Tool)
 
 	self.name = name
-	self.type = type -- e.g., "pickaxe", "kit"
-	self.position = Tool.countTools() + 1 -- used for inventory keybind (e.g. 1, 2, 3, etc.)
+	self.type = type
+	self.position = Tool.countTools() + 1
 	self.equipCooldown = tick()
 	self.equipped = false
 
 	if Tool.liveTools[name] then
-		Tool.liveTools[name]:destroy() -- Clean up the old tool if it exists
+		Tool.liveTools[name]:destroy()
 		warn("Tool with name '" .. name .. "' already exists. Cleaned up the old...")
+		self = nil
+		return
 	end
 
 	self:setup()
@@ -37,28 +39,30 @@ end
 function Tool:setup()
 	self.typeClass = engine:get(self.type).new(self.name, self)
 
-	-- create toolbar button for the tool
-	self.ui = Players.LocalPlayer.PlayerGui:WaitForChild("UI"):WaitForChild("Inventory").Container.Template:Clone()
+	-- create UI FROM Toolbar template (same template used in Backpack), but don't parent yet
+	local inv = Players.LocalPlayer.PlayerGui:WaitForChild("UI"):WaitForChild("Inventory")
+	local toolbar = inv.Toolbar
+	local template = toolbar:WaitForChild("Template") :: Frame
+
+	self.ui = template:Clone()
 	self.ui.Name = self.name
 	self.ui.Icon.Image = Icons[self.type] or Icons.Other
-	self.ui.Index.Text = tostring(self.position)
+	self.ui.Index.Text = tostring(self.position) -- will be overwritten by InventoryManager
 	self.ui.Weight.Visible = false
 	self.ui.Titles.Template.Text = self.typeClass.displayName or "Unknown Tool"
 	self.ui.Titles.Template.Visible = true
 	self.ui.Visible = true
 
+	-- FX
 	self.ui.Button.MouseEnter:Connect(function()
 		Sound:playGlobal("Hover")
-		QuickTween(self.ui.Outline.UIGradient, 0.15, {
-			Rotation = 220,
-		})
+		QuickTween(self.ui.Outline.UIGradient, 0.15, { Rotation = 220 })
 	end)
 	self.ui.Button.MouseLeave:Connect(function()
-		QuickTween(self.ui.Outline.UIGradient, 0.3, {
-			Rotation = 40,
-		})
+		QuickTween(self.ui.Outline.UIGradient, 0.3, { Rotation = 40 })
 	end)
 	self.ui.Button.Activated:Connect(function()
+		-- Simple click toggles equip; drag is handled in InventoryManager
 		Sound:playGlobal("Click")
 		if self.equipped then
 			self:unequip()
@@ -67,7 +71,18 @@ function Tool:setup()
 		end
 	end)
 
-	self.ui.Parent = Players.LocalPlayer.PlayerGui.UI.Inventory.Container
+	-- Parent placement is now owned by InventoryManager:
+	engine:get("BackpackManager").addTool(self)
+end
+
+-- Called by InventoryManager to show/hide the toolbar hotkey label
+function Tool:setIndexLabel(idxText: string?)
+	if idxText then
+		self.ui.Index.Text = idxText
+		self.ui.Index.Visible = true
+	else
+		self.ui.Index.Visible = false
+	end
 end
 
 function Tool:equip()
@@ -83,10 +98,9 @@ function Tool:equip()
 	self.equipped = true
 	self.typeClass:equip()
 
-	-- Update UI to show equipped state
-	QuickTween(self.ui.Outline, 0.15, {
-		Color = Color3.new(1, 1, 1),
-	})
+	QuickTween(self.ui.Outline, 0.15, { Color = Color3.new(1, 1, 1) })
+	local inv = Players.LocalPlayer.PlayerGui:WaitForChild("UI"):WaitForChild("Inventory")
+	inv.Tip.Visible = false
 end
 
 function Tool:unequip()
@@ -102,17 +116,14 @@ function Tool:unequip()
 	self.equipped = false
 	self.typeClass:unequip()
 
-	-- Update UI to show unequipped state
-	QuickTween(self.ui.Outline, 0.15, {
-		Color = Color3.new(0, 0, 0),
-	})
+	QuickTween(self.ui.Outline, 0.15, { Color = Color3.new(0, 0, 0) })
+	local inv = Players.LocalPlayer.PlayerGui:WaitForChild("UI"):WaitForChild("Inventory")
+	inv.Tip.Visible = true
 end
 
 function Tool:destroy()
 	self.typeClass:destroy()
-
 	self.ui:Destroy()
-
 	if Tool.liveTools[self.name] then
 		Tool.liveTools[self.name] = nil
 	end
@@ -124,7 +135,6 @@ function Tool.countTools()
 	for _, _ in pairs(Tool.liveTools) do
 		count += 1
 	end
-
 	return count
 end
 
