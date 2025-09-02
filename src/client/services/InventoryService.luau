@@ -11,6 +11,9 @@ function InventoryService.init(engineModule)
 			InventoryService:updateRefiningKitStatus(data)
 		elseif topic == "readyToRefine" then
 			engine:get("RefiningKit"):setupSmash()
+			for _, reward in pairs(data) do
+				engine:get("BackpackService").addTool(reward.lootKey, "HoldLoot", reward.id)
+			end
 		elseif topic == "refineReplicate" then
 			engine
 				:get("RefineReplicate")
@@ -27,7 +30,7 @@ function InventoryService.register(playerData)
 	end
 
 	-- Initialize the player's inventory
-	InventoryService.tools.pickaxe = engine:get("Tool").new(playerData.equipped.pickaxe, "Pickaxe")
+	InventoryService.tools.pickaxe = engine:get("BackpackService").addTool(playerData.equipped.pickaxe, "Pickaxe")
 end
 
 function InventoryService:updateRefiningKitStatus(data)

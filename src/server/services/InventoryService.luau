@@ -1,3 +1,4 @@
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InventoryService = {}
@@ -44,6 +45,10 @@ function InventoryService.init(engineModule)
 			InventoryService:unequipPickaxe(player, data)
 		elseif topic == "strikePickaxe" then
 			InventoryService:strikePickaxe(player, data)
+		elseif topic == "equipLoot" then
+			InventoryService:equipLoot(player, data)
+		elseif topic == "unequipLoot" then
+			InventoryService:unequipLoot(player, data)
 		elseif topic == "equipKit" then
 			InventoryService:equipRefiningKit(player)
 		elseif topic == "smashReplicate" then
@@ -251,9 +256,12 @@ function InventoryService:equipRefiningKit(player)
 
 	PlayerService:Get(player).localData.refineProgress = containerStatus.now
 
-	for _, loot in pairs(rewards) do
+	local keyToId = {}
+	for index, loot in pairs(rewards) do
 		loot.kg = math.floor(loot.kg * 100) / 100 -- round to 2 decimal places
-		table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg })
+		local id = HttpService:GenerateGUID(false)
+		keyToId[index] = id
+		table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg, id = id })
 		if not playerData.statistics.found_loot[loot.lootKey] then
 			-- player found this loot for first time
 			playerData.statistics.found_loot[loot.lootKey] = { count = 1, largest = loot.kg }
@@ -268,7 +276,15 @@ function InventoryService:equipRefiningKit(player)
 
 	InventoryService:spawnLootInTray(trayModel, rewards)
 
-	engine.events.Inventory:FireClient(player, "readyToRefine")
+	local clientRewards = table.clone(rewards)
+	for index, loot in pairs(clientRewards) do
+		if loot.trait == "none" then
+			loot.trait = nil
+		end
+		loot._meta = nil
+		loot.id = keyToId[index]
+	end
+	engine.events.Inventory:FireClient(player, "readyToRefine", clientRewards)
 	playerData.container = {}
 end
 
@@ -410,6 +426,60 @@ function InventoryService:unequipPickaxe(player, pickaxeName)
 			pickaxe = findPickaxe()
 		end
 		stowPickaxe(pickaxe)
+	end
+end
+
+-----------------------
+-- loot hold methods --
+-----------------------
+
+function InventoryService:equipLoot(player, lootID)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+
+	local inventory = playerData.inventory
+	local desiredLoot
+
+	for _, loot in pairs(inventory.loot) do
+		if loot.id == lootID then
+			desiredLoot = loot
+			break
+		end
+	end
+
+	-- @todo: traits
+
+	if desiredLoot then
+		local lootModel = ReplicatedStorage.Storage.Loot[desiredLoot.name]:Clone()
+		lootModel.Size *= desiredLoot.weight
+		local weld = Instance.new("Weld")
+		weld.Parent = lootModel
+		weld.Part0 = lootModel
+		weld.Part1 = player.Character["Right Arm"]
+		weld.C0 = CFrame.new(0, 1 + lootModel.Size.Y / 2, 0)
+		lootModel.Anchored = false
+		lootModel.Parent = player.Character
+	end
+end
+
+function InventoryService:unequipLoot(player, lootID)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+
+	local inventory = playerData.inventory
+	local desiredLoot
+
+	for _, loot in pairs(inventory.loot) do
+		if loot.id == lootID then
+			desiredLoot = loot
+			break
+		end
+	end
+
+	if desiredLoot then
+		if player.Character:FindFirstChild(desiredLoot.name) then
+			player.Character[desiredLoot.name]:Destroy()
+		end
 	end
 end
 

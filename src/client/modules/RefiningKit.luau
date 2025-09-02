@@ -93,7 +93,7 @@ end
 
 function RefiningKit:requestRefine()
 	local sifterStatus = engine:get("PlayerService").Data.container
-	local pickaxeToolClass = engine:get("InventoryService").tools.pickaxe
+	local pickaxeToolClass = engine:get("InventoryService").tools.pickaxe.toolClass
 	local pickaxeClass = pickaxeToolClass.typeClass
 	local character = Players.LocalPlayer.Character
 
@@ -130,7 +130,7 @@ function RefiningKit:startRefining()
 	local QuickTween = engine:get("QuickTween")
 	-- local containerStatus = PlayerService.Data.container
 	-- local kitData = engine:get("Kits")[PlayerService.Data.sifter]
-	local pickaxeClass = engine:get("InventoryService").tools.pickaxe
+	local pickaxeClass = engine:get("InventoryService").tools.pickaxe.toolClass
 	local pickaxeTypeClass = pickaxeClass.typeClass
 	local character = Players.LocalPlayer.Character
 	local camera = workspace.CurrentCamera
@@ -141,6 +141,8 @@ function RefiningKit:startRefining()
 	RefiningKit:updateTip(Input.PreferredInput.Current)
 	RefiningKit.cameraCFCache = camera.CFrame
 	engine:get("SpeedManager"):setState("RefiningKit", "freeze")
+
+	engine:get("BackpackService"):disable()
 
 	RefiningKit.animations.Kneel:Play(0.1)
 	engine.events.Inventory:FireServer("equipKit")
@@ -170,7 +172,7 @@ function RefiningKit:stopRefining()
 
 	engine.events.Inventory:FireServer("finishRefining")
 
-	local pickaxeTypeClass = engine:get("InventoryService").tools.pickaxe.typeClass
+	local pickaxeTypeClass = engine:get("InventoryService").tools.pickaxe.toolClass.typeClass
 	pickaxeTypeClass.refining = false
 	pickaxeTypeClass.animations.Idle:Play(0.1)
 
@@ -181,6 +183,8 @@ function RefiningKit:stopRefining()
 	for _, kitAnim in pairs(RefiningKit.animations) do
 		kitAnim:Stop()
 	end
+
+	engine:get("BackpackService"):enable()
 end
 
 function RefiningKit:setupSmash()

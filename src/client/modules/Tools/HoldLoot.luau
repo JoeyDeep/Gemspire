@@ -36,7 +36,7 @@ end
 function HoldLoot:equip()
 	HoldLoot.activeAnims.Equip:GetMarkerReachedSignal("Equip"):Once(function()
 		if self.toolClass.equipped then
-			engine.events.Inventory:FireServer("equipLoot")
+			engine.events.Inventory:FireServer("equipLoot", self.toolClass.data)
 		end
 	end)
 	HoldLoot.activeAnims.Equip.Stopped:Once(function()
@@ -44,10 +44,21 @@ function HoldLoot:equip()
 			HoldLoot.activeAnims.Idle:Play(0)
 		end
 	end)
+	HoldLoot.activeAnims.Equip:AdjustSpeed(1)
+	HoldLoot.activeAnims.Equip.TimePosition = 0
 	HoldLoot.activeAnims.Equip:Play()
+	HoldLoot.activeAnims.Equip:AdjustSpeed(1)
 end
 
-function HoldLoot:unequip() end
+function HoldLoot:unequip()
+	engine.events.Inventory:FireServer("unequipLoot", self.toolClass.data)
+
+	HoldLoot.activeAnims.Idle:Stop()
+
+	HoldLoot.activeAnims.Equip:AdjustSpeed(-1)
+	HoldLoot.activeAnims.Equip:Play()
+	HoldLoot.activeAnims.Equip:AdjustSpeed(-1)
+end
 
 function HoldLoot:destroy() -- cleanup fnc
 end

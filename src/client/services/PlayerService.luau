@@ -19,7 +19,7 @@ end
 function PlayerService:loaded()
 	PlayerService._loaded = true
 	engine:get("InventoryService").register(PlayerService.Data)
-	engine:get("BackpackService"):setup(PlayerService.Data)
+	-- engine:get("BackpackService"):setup(PlayerService.Data)
 end
 
 return PlayerService
