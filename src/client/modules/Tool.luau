@@ -25,6 +25,7 @@ function Tool.new(name, type, ui, data)
 	self.equipCooldown = tick()
 	self.equipped = false
 	self.typeClass = engine:get(self.type).new(self.name, self)
+	self.id = game:GetService("HttpService"):GenerateGUID(false)
 
 	-- if Tool.liveTools[name] then
 	-- 	Tool.liveTools[name]:destroy()
@@ -35,7 +36,7 @@ function Tool.new(name, type, ui, data)
 
 	-- self:setup()
 
-	-- Tool.liveTools[name] = self
+	Tool.liveTools[self.id] = self
 	return self
 end
 

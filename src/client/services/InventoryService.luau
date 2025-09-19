@@ -12,6 +12,7 @@ function InventoryService.init(engineModule)
 		elseif topic == "readyToRefine" then
 			engine:get("RefiningKit"):setupSmash()
 			for _, reward in pairs(data) do
+				table.insert(engine:get("PlayerService").Data.inventory.loot, reward)
 				engine:get("BackpackService").addTool(reward.lootKey, "HoldLoot", reward.id)
 			end
 		elseif topic == "refineReplicate" then
