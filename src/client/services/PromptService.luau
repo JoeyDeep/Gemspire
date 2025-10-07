@@ -1,6 +1,8 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local PromptService = {}
+local PromptService = {
+	prompts = {},
+}
 PromptService.__index = PromptService
 
 local engine
@@ -21,6 +23,24 @@ function PromptService.init(engineModule)
 		task.wait(5)
 		newPrompt:set("ActionText", "Hey! This is a dynamically created prompt!")
 	end)
+end
+
+function PromptService:disableAll()
+	for _, prompt in pairs(PromptService.prompts) do
+		if prompt.prompt.Enabled then
+			prompt:set("Enabled", false)
+			prompt.wasEnabled = true
+		end
+	end
+end
+
+function PromptService:reEnableAll()
+	for _, prompt in pairs(PromptService.prompts) do
+		if prompt.wasEnabled then
+			prompt:set("Enabled", true)
+			prompt.wasEnabled = nil
+		end
+	end
 end
 
 function PromptService.new(existingPrompt)
@@ -88,6 +108,7 @@ function PromptService.new(existingPrompt)
 	self.prompt = prompt
 	self.ui = ui
 
+	table.insert(PromptService.prompts, self)
 	return self
 end
 

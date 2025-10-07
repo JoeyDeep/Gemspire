@@ -34,8 +34,14 @@ local function initModules()
 	for _, module in pairs(engine.modules) do
 		if typeof(module) == "table" and module.init and not module.___loaded then
 			-- Call the init function if it exists
+			local start = tick()
+
 			module.init(engine)
 			module.___loaded = true
+
+			if tick() - start > 0.1 then
+				warn(`[!!!] {module.Name} took {tick() - start} seconds to load`)
+			end
 		end
 	end
 end
@@ -50,5 +56,6 @@ for _, folderName in ipairs(foldersToLoad) do
 	end
 end
 initModules()
+print(`[Engine] Server Loaded`)
 
 return engine

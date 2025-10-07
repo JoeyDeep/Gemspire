@@ -55,6 +55,8 @@ function InventoryService.init(engineModule)
 			InventoryService:smashReplicate(player, data)
 		elseif topic == "finishRefining" then
 			InventoryService:finishRefining(player)
+		elseif topic == "sellLoot" then
+			InventoryService:sellLoot(player, data)
 		end
 	end)
 end
@@ -133,6 +135,40 @@ function InventoryService.draw(playerClass)
 		containerModel.Rubble.Transparency = 1
 		containerModel.FillPlane.Transparency = 1
 	end
+end
+
+function InventoryService:sellLoot(player, parameters)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+
+	local totalEarned = 0
+	local lootToSell = {}
+
+	if parameters == "all" then
+		lootToSell = playerData.inventory.loot
+	else
+		for _, loot in pairs(playerData.inventory.loot) do
+			if table.find(parameters, loot.id) then
+				table.insert(lootToSell, loot)
+				break
+			end
+		end
+	end
+
+	print(lootToSell)
+	for _, loot in pairs(lootToSell) do
+		local lootDef = engine:get("Loot")[loot.name]
+		-- @todo: traits
+		if lootDef and not loot.locked then
+			local sellPrice = lootDef.value_per_kg or 0
+			totalEarned += sellPrice * loot.weight
+
+			table.remove(playerData.inventory.loot, table.find(playerData.inventory.loot, loot))
+		end
+	end
+
+	playerData.coins += math.round(totalEarned) -- round to 2 decimal places
+	engine.events.Inventory:FireClient(player, "sellComplete", { earned = totalEarned, newBalance = playerData.coins })
 end
 
 function InventoryService:getContainerStatus(player)

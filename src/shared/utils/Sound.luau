@@ -1,19 +1,22 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local InstanceCache = require(ReplicatedStorage.Packages.InstanceCache)
+
 local Sound = {
 	registry = {},
 	folderRegistry = {},
+
+	cache = {},
 }
 
 function Sound.init()
+	local soundCacheFolder = ReplicatedStorage.Storage:FindFirstChild("SoundCache") or Instance.new("Folder")
+	soundCacheFolder.Parent = ReplicatedStorage.Storage
+	soundCacheFolder.Name = "SoundCache"
+
 	for _, sound in pairs(ReplicatedStorage.Storage.Sounds:GetDescendants()) do
-		if sound:IsA("Sound") and not Sound.registry[sound.Name] then
-			Sound.registry[sound.Name] = sound
-		elseif sound:IsA("Sound") and Sound.registry[sound.Name] then
-			warn(`Sound {sound.Name} already exists in the registry. Skipping duplicate.`)
-		elseif sound:IsA("Folder") and not Sound.folderRegistry[sound.Name] then
-			Sound.folderRegistry[sound.Name] = sound
-		end
+		Sound:addToRegistry(sound)
 	end
 
 	local SoundEvent
@@ -29,6 +32,29 @@ function Sound.init()
 	end
 end
 
+function Sound:addToRegistry(object)
+	local addedToRegistry = false
+
+	if object:IsA("Sound") and not Sound.registry[object.Name] then
+		Sound.registry[object.Name] = object
+		addedToRegistry = true
+	elseif object:IsA("Sound") and Sound.registry[object.Name] then
+		warn(`Sound {object.Name} already exists in the registry. Skipping duplicate.`)
+	elseif object:IsA("Folder") and not Sound.folderRegistry[object.Name] then
+		Sound.folderRegistry[object.Name] = object
+		addedToRegistry = true
+	end
+
+	if object:IsA("Sound") and addedToRegistry then
+		local cacheSize = tonumber(object:GetAttribute("CacheSize"))
+		if cacheSize then
+			task.spawn(function()
+				Sound.cache[object.Name] = InstanceCache.new(object, cacheSize, ReplicatedStorage.Storage.SoundCache)
+			end)
+		end
+	end
+end
+
 function Sound:playGlobal(name, volume)
 	local sound = Sound.registry[name]
 	if not sound then
@@ -36,13 +62,24 @@ function Sound:playGlobal(name, volume)
 		return
 	end
 
-	local clonedSound = sound:Clone()
+	local fromCache = false
+	local clonedSound
+	if Sound.cache[name] then
+		clonedSound = Sound.cache[name]:GetInstance()
+		fromCache = true
+	else
+		clonedSound = sound:Clone()
+	end
 	clonedSound.Volume = volume or clonedSound.Volume
 	clonedSound.Parent = workspace
 	clonedSound:Play()
 
-	clonedSound.Ended:Connect(function()
-		clonedSound:Destroy()
+	clonedSound.Ended:Once(function()
+		if fromCache and Sound.cache[name] then
+			Sound.cache[name]:ReturnInstance(clonedSound)
+		else
+			clonedSound:Destroy()
+		end
 	end)
 
 	return clonedSound
@@ -104,13 +141,24 @@ function Sound:playLocal(name, parent, volume)
 		return
 	end
 
-	local clonedSound = sound:Clone()
-	clonedSound.Volume = volume or sound.Volume
+	local fromCache = false
+	local clonedSound
+	if Sound.cache[name] then
+		clonedSound = Sound.cache[name]:GetInstance()
+		fromCache = true
+	else
+		clonedSound = sound:Clone()
+	end
+	clonedSound.Volume = volume or clonedSound.Volume
 	clonedSound.Parent = parent
 	clonedSound:Play()
 
-	clonedSound.Ended:Connect(function()
-		clonedSound:Destroy()
+	clonedSound.Ended:Once(function()
+		if fromCache and Sound.cache[name] then
+			Sound.cache[name]:ReturnInstance(clonedSound)
+		else
+			clonedSound:Destroy()
+		end
 	end)
 
 	return clonedSound
