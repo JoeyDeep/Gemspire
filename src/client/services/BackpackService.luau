@@ -1,6 +1,9 @@
 local BackpackService = {
 	primaries = {},
 	loot = {},
+
+	toolbar = {},
+	backpack = {},
 	enabled = true,
 }
 BackpackService.__index = BackpackService
@@ -80,7 +83,7 @@ function BackpackService:drawButton()
 		end
 	end)
 
-	-- determine toolbar or backpack
+	-- @JoeyDeep determine toolbar or backpack
 	self.ui.Parent = toolbar
 end
 
