@@ -82,6 +82,12 @@ function InventoryService.register(playerClass)
 		character.Parent = workspace.Entities.Characters
 	end
 
+	local storage = ReplicatedStorage.Storage
+	local paxe = storage.Tools.Pickaxes[playerClass.profile.Data.equipped.pickaxe .. "_new"]:Clone()
+	paxe:SetAttribute("Type", "Pickaxe")
+	
+	paxe.Parent = player.Backpack
+
 	if player.Character and player.Character:IsDescendantOf(workspace) then
 		CharacterAdded(player.Character)
 	end
