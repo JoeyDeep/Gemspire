@@ -1,6 +1,8 @@
 local engine = {
 	modules = {},
 	events = game:GetService("ReplicatedStorage").Events,
+	player = game:GetService("Players").LocalPlayer,
+	PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),
 }
 engine.__index = engine
 

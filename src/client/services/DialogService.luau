@@ -80,7 +80,7 @@ function DialogService:npcSpeak(node)
 
 	text = self:parseText(text)
 	local NPCHandler = engine:get("NPCHandler")
-	NPCHandler:get(self.npc):displayDialog(text)
+	NPCHandler:get(self.npc):displayDialog(text, selectedNode.next ~= nil or selectedNode.choice ~= nil)
 
 	if selectedNode.post then
 		engine:get("DialogHooks"):runHooks(self, selectedNode.post)
@@ -141,7 +141,7 @@ function DialogService:displayChoices(options)
 					oldOption.TextButton.Active = false
 				end
 			end
-			self:playerRespond(option.displayText or option.optionText)
+			self:playerRespond(option.bubbleText or option.optionText)
 			self:npcSpeak(option.next)
 		end)
 		optionUI.TextButton.MouseEnter:Connect(function()

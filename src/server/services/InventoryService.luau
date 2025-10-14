@@ -65,7 +65,8 @@ function InventoryService.register(playerClass)
 	local player = playerClass.player
 
 	local function CharacterAdded(character)
-		InventoryService.draw(playerClass)
+		-- InventoryService.draw(playerClass)
+		local Kits = engine:get("Kits")
 
 		-- do not allow characters to collide with one another
 		for _, basePart in pairs(character:GetDescendants()) do
@@ -79,14 +80,44 @@ function InventoryService.register(playerClass)
 			end
 		end)
 
+		local equippedContainer = Kits[playerClass.profile.Data.equipped.kit].container
+		local kitData = Kits[playerClass.profile.Data.equipped.kit]
+		local containerModel = ReplicatedStorage.Storage.Tools.Containers[equippedContainer]:Clone()
+		containerModel:PivotTo(character:GetPivot())
+		containerModel.Handle.Motor6D.Part0 = character.Torso
+		containerModel.Handle.Motor6D.C0 = kitData.containerPivotOffset
+		containerModel.Parent = character
+
+		local rubbleMotor = containerModel.Handle.RubbleMotor
+		local fillMotor = containerModel.Handle.FillMotor
+		local containerStatus = InventoryService:getContainerStatus(playerClass.player)
+		local fillOffsets = kitData.containerFillOffsets
+		local progressCF = fillOffsets.Min:Lerp(fillOffsets.Max, containerStatus.now / containerStatus.max)
+		if containerStatus.now > 0 then
+			rubbleMotor.C0 = progressCF
+			fillMotor.C0 = progressCF:ToWorldSpace(fillOffsets.RubbleOffset)
+			containerModel.Rubble.Transparency = 0
+			containerModel.FillPlane.Transparency = 0
+		else
+			containerModel.Rubble.Transparency = 1
+			containerModel.FillPlane.Transparency = 1
+		end
+
 		character.Parent = workspace.Entities.Characters
 	end
 
 	local storage = ReplicatedStorage.Storage
-	local paxe = storage.Tools.Pickaxes[playerClass.profile.Data.equipped.pickaxe .. "_new"]:Clone()
-	paxe:SetAttribute("Type", "Pickaxe")
-	
-	paxe.Parent = player.Backpack
+
+	local equippedPickaxe = playerClass.profile.Data.equipped.pickaxe
+	local pickaxeTool = storage.Tools.Pickaxes[equippedPickaxe]:Clone()
+	pickaxeTool:SetAttribute("Type", "Pickaxe")
+	pickaxeTool.Parent = player.Backpack
+
+	-- LOOT!
+	-- table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg, id = id })
+	for _, loot in pairs(playerClass.profile.Data.inventory.loot) do
+		InventoryService:drawHoldLoot(playerClass, loot, loot.id)
+	end
 
 	if player.Character and player.Character:IsDescendantOf(workspace) then
 		CharacterAdded(player.Character)
@@ -143,6 +174,22 @@ function InventoryService.draw(playerClass)
 	end
 end
 
+function InventoryService:drawHoldLoot(playerClass, lootData, id)
+	local storage = ReplicatedStorage.Storage
+
+	local handle = storage.Loot[lootData.lootKey]:Clone()
+	local tool = Instance.new("Tool")
+	handle.Name = "Handle"
+	handle.Size *= lootData.kg
+	handle.Anchored = false
+	handle.Parent = tool
+	tool:SetAttribute("Type", "HoldLoot")
+	tool.Grip *= CFrame.Angles(0, math.rad(math.random(0, 360)), 0)
+	tool.Name = id
+	tool.ToolTip = `{lootData.lootKey} ({math.floor(lootData.kg * 100) / 100} kg)`
+	tool.Parent = playerClass.player.Backpack
+end
+
 function InventoryService:sellLoot(player, parameters)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:GetData(player)
@@ -151,7 +198,7 @@ function InventoryService:sellLoot(player, parameters)
 	local lootToSell = {}
 
 	if parameters == "all" then
-		lootToSell = playerData.inventory.loot
+		lootToSell = table.clone(playerData.inventory.loot)
 	else
 		for _, loot in pairs(playerData.inventory.loot) do
 			if table.find(parameters, loot.id) then
@@ -161,8 +208,7 @@ function InventoryService:sellLoot(player, parameters)
 		end
 	end
 
-	print(lootToSell)
-	for _, loot in pairs(lootToSell) do
+	for index, loot in pairs(lootToSell) do
 		local lootDef = engine:get("Loot")[loot.name]
 		-- @todo: traits
 		if lootDef and not loot.locked then
@@ -170,11 +216,22 @@ function InventoryService:sellLoot(player, parameters)
 			totalEarned += sellPrice * loot.weight
 
 			table.remove(playerData.inventory.loot, table.find(playerData.inventory.loot, loot))
+			if player.Character and player.Character:FindFirstChild(loot.id) then
+				player.Character[loot.id]:Destroy()
+			elseif player.Backpack:FindFirstChild(loot.id) then
+				player.Backpack[loot.id]:Destroy()
+			end
+		else
+			table.remove(lootToSell, index) -- cannot sell locked or undefined loot
 		end
 	end
 
 	playerData.coins += math.round(totalEarned) -- round to 2 decimal places
-	engine.events.Inventory:FireClient(player, "sellComplete", { earned = totalEarned, newBalance = playerData.coins })
+	engine.events.Inventory:FireClient(
+		player,
+		"sellComplete",
+		{ earned = totalEarned, newBalance = playerData.coins, toRemove = lootToSell }
+	)
 end
 
 function InventoryService:getContainerStatus(player)
@@ -247,7 +304,7 @@ function InventoryService:equipRefiningKit(player)
 	local equippedTray = kitData.tray
 	local equippedPickaxe = playerData.equipped.pickaxe
 
-	for _, pickaxePart in pairs(character.Items[equippedPickaxe]:GetChildren()) do
+	for _, pickaxePart in pairs(character[equippedPickaxe]:GetChildren()) do
 		if pickaxePart:IsA("BasePart") then
 			pickaxePart:SetAttribute("Transparency", pickaxePart.Transparency)
 			pickaxePart.Transparency = 1
@@ -281,7 +338,7 @@ function InventoryService:equipRefiningKit(player)
 		lootDefs = engine:get("Loot"),
 		baseLuck = 1,
 		opts = {
-			rng = Random.new(player.UserId),
+			rng = Random.new(), -- seed by player.UserId?
 		},
 	})
 
@@ -326,6 +383,10 @@ function InventoryService:equipRefiningKit(player)
 		loot._meta = nil
 		loot.id = keyToId[index]
 	end
+
+	for _, loot in pairs(clientRewards) do
+		InventoryService:drawHoldLoot(PlayerService:Get(player), loot, loot.id)
+	end
 	engine.events.Inventory:FireClient(player, "readyToRefine", clientRewards)
 	playerData.container = {}
 end
@@ -352,7 +413,7 @@ function InventoryService:finishRefining(player)
 		end
 	end
 
-	for _, pickaxePart in pairs(character.Items[equippedPickaxe]:GetChildren()) do
+	for _, pickaxePart in pairs(character[equippedPickaxe]:GetChildren()) do
 		local transparency = pickaxePart:GetAttribute("Transparency")
 		if pickaxePart:IsA("BasePart") and transparency then
 			pickaxePart.Transparency = transparency

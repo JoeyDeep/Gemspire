@@ -151,17 +151,53 @@ return {
 				},
 			},
 
+			repeat_menu = {
+				choice = {
+					`What else can I do for you, <font color="rgb(255, 231, 94)"><playerName></font>?`,
+					`Anything more, <font color="rgb(255, 231, 94)"><playerName></font>?`,
+				},
+				options = {
+					{
+						id = "sell_all",
+						optionText = "Sell all my loot",
+						bubbleText = "I'd like to sell all my gems.",
+						next = "sell_all_result",
+					},
+					{
+						id = "sell_this",
+						optionText = "Sell this item",
+						bubbleText = "I'd like to sell this item.",
+						next = "sell_result",
+					},
+					{
+						id = "appraise",
+						optionText = "How much is this worth?",
+						bubbleText = "I'd like to appraise this item.",
+						next = "appraise_result",
+					},
+					{
+						id = "bye",
+						optionText = "Nothing for now.",
+						bubbleText = "That's all for now.",
+						next = "exit",
+					},
+				},
+			},
+
 			sell_all_result = {
 				fncText = "sellAllLoot",
-				post = { { type = "close" } },
+				next = "repeat_menu",
+				post = { { type = "delay", duration = 3 } },
 			},
 			sell_result = {
 				fncText = "sellThis",
-				post = { { type = "close" } },
+				next = "repeat_menu",
+				post = { { type = "delay", duration = 3 } },
 			},
 			appraise_result = {
 				fncText = "appraiseThis",
-				post = { { type = "close" } },
+				next = "repeat_menu",
+				post = { { type = "delay", duration = 3 } },
 			},
 
 			exit = {
