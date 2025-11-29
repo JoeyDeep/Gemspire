@@ -1,6 +1,15 @@
 --[[
+	CLASS: DialogService.new(npcName: string) -> npcName corresponds to a model in workspace.Entities.NPCs
+
 	PURPOSE:
-		Manage dialog interactions between the player and NPCs.
+		Manage dialog interactions between the player and NPCs. New instance for each approach.
+
+		General sequence:
+			1. Player approaches NPC and triggers dialog (handled by NPCHandler, triggered by PromptService)
+			2. DialogService instance is created for that NPC
+			3. DialogService processes DialogData for that NPC to determine entry point
+			4. DialogService manages dialog flow, including NPC speech, player choices, and dialog hooks
+			5. DialogService ends dialog when complete or player walks away
 	USAGE:
 		```lua
 		local DialogService = require(engine:get("DialogService"))

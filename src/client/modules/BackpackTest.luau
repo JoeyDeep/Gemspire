@@ -1,4 +1,6 @@
 --[[
+    SINGLETON (Handler)
+
     PURPOSE:
         Handle tool equipping and unequipping events for tools in the player's backpack.
         !!! This module is in testing. The idea behind this backpack method is utilizing native Roblox backpack

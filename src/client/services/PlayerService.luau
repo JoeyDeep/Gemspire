@@ -1,4 +1,6 @@
 --[[
+	SINGLETON (Handler)
+	
 	PURPOSE:
 		Manage player data on the client side, including receiving data from the server.
 	USAGE:
@@ -27,7 +29,6 @@ end
 function PlayerService:loaded()
 	PlayerService._loaded = true
 	-- engine:get("InventoryService").register(PlayerService.Data)
-	-- engine:get("BackpackService"):setup(PlayerService.Data)
 end
 
 return PlayerService

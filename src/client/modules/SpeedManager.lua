@@ -1,10 +1,12 @@
 --[[
+	SINGLETON (Handler)
+
 	PURPOSE: 
 		Manage player speed affects and states, and set the player's humanoid WalkSpeed accordingly.
 	USAGE:
 		```lua
 		local SpeedManager = require(engine:get("SpeedManager"))
-		
+
 		SpeedManager:affect("speedBoost", 5) -- increase speed by 5
 		SpeedManager:setState("slowed", "freeze") -- set freeze state
 
@@ -47,8 +49,9 @@ end
 function SpeedManager:dropState(tag, state, noSet)
 	if SpeedManager.states[tag] then
 		SpeedManager.states[tag][state] = nil
-	else
-		warn(`[SpeedManager]: {tag} has no active states to be dropped.`)
+	--else
+		-- @TODO: re-enable `else` when ready to fix bad calls
+		--warn(`[SpeedManager]: {tag} has no active states to be dropped.`)
 	end
 
 	if not noSet then

@@ -1,4 +1,6 @@
 --[[
+	SINGLETON (Utility)
+
 	PURPOSE:
 		Handle dialog hooks and functions for dialogs in the game.
 		All DialogData.luau's "fncText" topics are processed by context here,
@@ -108,6 +110,18 @@ function DialogHooks:runFnc(fncName)
 				lootData = tool
 				break
 			end
+		end
+		if not lootData then
+			return {
+				`You need to hold up the item you want me to appraise.`,
+				`I can't appraise something I can't see! Hold it up for me.`,
+			}
+		end
+		if not lootData.lootKey then
+			return {
+				`This isn't something I'm willing to buy.`,
+				`Quite a nice item, but I don't deal with these kinds of things.`,
+			}
 		end
 		local lootDef = engine:get("Loot")[lootData.lootKey]
 		local sellPrice = math.round(lootDef.value_per_kg * lootData.kg)

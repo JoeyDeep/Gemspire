@@ -1,6 +1,8 @@
 --[[
+	CLASS: NPCHandler.new(npcName: string) -> npcName corresponds to a model in workspace.Entities.NPCs
+
 	PURPOSE: Handles all NPC behavior, particularly dialog interaction, but future
-	concerns include animation playing, action decisions, etc...	
+	concerns include animation playing, action decisions, etc... will be expanded later.
 
 ]]
 
@@ -30,7 +32,7 @@ function NPCHandler.new(npcName)
 
 	Prompt.prompt.Triggered:Connect(function()
 		local DialogService = engine:get("DialogService")
-		PromptService:disableAll()
+		PromptService:disableAll() -- disable other prompts while in dialog
 		DialogService.new(npcName)
 	end)
 
@@ -50,6 +52,7 @@ function NPCHandler:displayDialog(text)
 	local Typewriter = engine:get("Typewriter")
 	local dialogUI = self.npcModel:WaitForChild("Dialog")
 
+	-- if dialog box is not already prepared & visible on screen, set it up
 	if not dialogUI.Dialog.Visible then
 		dialogUI.Dialog.Position = UDim2.fromScale(0.5, 0.5)
 		dialogUI.Dialog.Shadow.ImageTransparency = 1
@@ -63,13 +66,8 @@ function NPCHandler:displayDialog(text)
 		task.wait(0.2)
 	end
 
-	-- local size = TextService:GetTextSize(
-	-- 	text,
-	-- 	dialogUI.Dialog.Message.TextSize,
-	-- 	dialogUI.Dialog.Message.Font,
-	-- 	Vector2.new(1000, 1000)
-	-- )
-	-- dialogUI.Dialog.Size = UDim2.new(0, size.X + 20, 0.5, 0)
+	-- typewrite effect play on the dialog TextLabel
+	-- @TODO: "Typewrite1" sound effect should be manipulated or changed per NPC type for personality
 	Typewriter.Play(dialogUI.Dialog.Message, text, {
 		sound = "Typewrite1",
 		soundParent = self.npcModel.Head,

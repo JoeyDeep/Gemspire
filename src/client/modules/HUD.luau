@@ -1,4 +1,6 @@
 --[[
+	SINGLETON (Handler)
+	
 	PURPOSE:
 		Handle the player's HUD display, including currency amounts and updates.
 		All UI-related HUD functions are managed here.
@@ -31,6 +33,8 @@ function HUD:draw()
 	UI.Luminite.Amount.Text = tostring(data.luminite)
 end
 
+-- reflect currency changes to the HUD UI
+-- `type` is either "coins" or "luminite"
 function HUD:addCurrency(type, amount, isPhysical)
 	local playerData = engine:get("PlayerService").Data
 	local UI = engine.PlayerGui:WaitForChild("UI"):WaitForChild("HUD")
@@ -38,6 +42,7 @@ function HUD:addCurrency(type, amount, isPhysical)
 	local Debris = game:GetService("Debris")
 	local Sound = engine:get("Sound")
 
+	-- `isPhysical` determines whether to spawn physical currency objects that fly out from the player
 	if isPhysical then
 		local cache = {}
 		local cacheClass

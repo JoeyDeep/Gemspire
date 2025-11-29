@@ -1,10 +1,15 @@
 --[[
+	CLASS: PromptService.new(existingPrompt: ProximityPrompt?) -> existingPrompt is optional; if provided, wraps that prompt
+	
 	PURPOSE:
 		Manage proximity prompts and their interactions with the player.
+		This service automatically handles prompts tagged with CollectionService tag "ProximityPrompt",
+		but also allows for dynamic creation of prompts via PromptService.new()
+
+		Essentially, this service wraps ProximityPrompt instances to provide
+		custom UI handling and easy management of multiple prompts and prompt types.
 
 	USAGE:
-	N/A, this is a service module initialized by the engine
-	Read more:
 		ProximityPrompt instances with CollectionSerivce tag "ProximityPrompt" will be
 		automatically managed by this service.
 

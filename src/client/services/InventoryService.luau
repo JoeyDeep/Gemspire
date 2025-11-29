@@ -1,4 +1,6 @@
 --[[
+	SINGLETON (Handler)
+	
 	PURPOSE: 
 		Manage the player's inventory, including refining kits, loot, and tool setup.
 

@@ -1,7 +1,16 @@
 --[[
+	SINGLETON (Handler)
+
 	PURPOSE:
 		Handle refining kit functionality, including starting/stopping refining,
 		updating UI, handling input, and managing animations.
+
+		General sequence:
+			1. Player equips their pickaxe which triggers (RefiningKit:start)
+			2. Player initiates refining action (RefiningKit:requestRefine)
+			3. Refining process starts (RefiningKit:startRefining)
+			4. Player smashes rubble to refine (RefiningKit:setupSmash)
+			5. Refining process ends (RefiningKit:stopRefining)
 
 	USAGE:
 		```lua
@@ -161,8 +170,6 @@ function RefiningKit:startRefining()
 	RefiningKit.cameraCFCache = camera.CFrame
 	engine:get("SpeedManager"):setState("RefiningKit", "freeze")
 
-	engine:get("BackpackService"):disable()
-
 	RefiningKit.animations.Kneel:Play(0.1)
 	engine.events.Inventory:FireServer("equipKit")
 
@@ -202,8 +209,6 @@ function RefiningKit:stopRefining()
 	for _, kitAnim in pairs(RefiningKit.animations) do
 		kitAnim:Stop()
 	end
-
-	engine:get("BackpackService"):enable()
 end
 
 function RefiningKit:setupSmash()
