@@ -1,3 +1,9 @@
+--[[
+	PURPOSE:
+		Handle the player's HUD display, including currency amounts and updates.
+		All UI-related HUD functions are managed here.
+]]
+
 local HUD = {}
 
 local engine
@@ -12,6 +18,7 @@ function HUD.init(engineModule)
 	CurrencyCache.Name = "CurrencyCache"
 	CurrencyCache.Parent = workspace.Entities
 
+	-- build instance caches for potentially high-frequency demanded objects
 	HUD.coinCache = InstanceCache.new(ReplicatedStorage.Storage.CurrencyObjects.Coin, 51, CurrencyCache)
 	HUD.luminiteCache = InstanceCache.new(ReplicatedStorage.Storage.CurrencyObjects.Luminite, 51, CurrencyCache)
 end

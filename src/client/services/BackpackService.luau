@@ -1,3 +1,14 @@
+--[[
+	PURPOSE:
+		Manage the player's backpack and toolbar, including tool equipping and unequipping.
+		
+	USAGE:
+		```lua
+		local BackpackService = require(engine:get("BackpackService"))
+
+
+]]
+
 local BackpackService = {
 	primaries = {},
 	loot = {},
@@ -43,6 +54,8 @@ function BackpackService.addTool(name, type, data)
 	return self
 end
 
+
+-- draw button to be visualized on toolbar for equip/unequip
 function BackpackService:drawButton()
 	local Players = game:GetService("Players")
 	local Icons = engine:get("Icons")

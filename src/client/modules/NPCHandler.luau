@@ -1,3 +1,9 @@
+--[[
+	PURPOSE: Handles all NPC behavior, particularly dialog interaction, but future
+	concerns include animation playing, action decisions, etc...	
+
+]]
+
 local NPCHandler = {
 	NPCs = {},
 }
@@ -38,9 +44,10 @@ function NPCHandler:get(npcName)
 end
 
 function NPCHandler:displayDialog(text)
+	-- display chosen text from DialogService.luau above our particular NPC's head
+
 	local QuickTween = engine:get("QuickTween")
 	local Typewriter = engine:get("Typewriter")
-	-- local TextService = game:GetService("TextService")
 	local dialogUI = self.npcModel:WaitForChild("Dialog")
 
 	if not dialogUI.Dialog.Visible then

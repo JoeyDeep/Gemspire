@@ -1,3 +1,11 @@
+--[[
+	PURPOSE: 
+		Manage the player's inventory, including refining kits, loot, and tool setup.
+
+	USAGE:
+		N/A, this is a service module initialized by the engine.
+]]
+
 local InventoryService = {}
 InventoryService.__index = InventoryService
 
@@ -37,6 +45,7 @@ function InventoryService.init(engineModule)
 		end
 	end)
 
+	-- each time a new character is added, init inventory for it
 	player.CharacterAdded:Connect(function(character: Model)
 		InventoryService.initCharacter(character)
 	end)

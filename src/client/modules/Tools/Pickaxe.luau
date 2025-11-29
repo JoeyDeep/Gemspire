@@ -1,3 +1,15 @@
+--[[
+PURPOSE: 
+	Process pickaxe tool behavior, including strike mini-game and mining logic.
+
+USAGE:
+	```lua
+	local Pickaxe = require(engine:get("Pickaxe"))
+	local myPickaxeInstance = Pickaxe.new(toolObject) -- toolObject is the Tool instance representing the pickaxe
+	myPickaxeInstance:equip() -- called from Tool.luau when player equips the pickaxe
+	```
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)

@@ -1,3 +1,14 @@
+--[[
+	PURPOSE:
+		Manage dialog interactions between the player and NPCs.
+	USAGE:
+		```lua
+		local DialogService = require(engine:get("DialogService"))
+		DialogService.new("NPC_Name") -- starts dialog with specified NPC
+		```
+
+]]
+
 local DialogService = {
 	playerDialogKey = nil,
 }
@@ -52,6 +63,7 @@ function DialogService:start()
 	end
 end
 
+-- run through logic to begin conversation at a certain node (see DialogData.luau)
 function DialogService:npcSpeak(node)
 	local DialogData = engine:get("DialogData")
 	local npcDialog = DialogData[self.npc]

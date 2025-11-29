@@ -1,3 +1,17 @@
+--[[
+	PURPOSE:
+		Manage player inventories, including equipping tools, managing loot, and refining kits.
+	
+		Most usage from server-sent events to Inventory RemoteEvent.
+		USAGE:
+		```lua
+		local InventoryService = require(engine:get("InventoryService"))
+		InventoryService:register(playerClass)
+		InventoryService:equipPickaxe(player, pickaxeName)
+		```
+
+]]
+
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

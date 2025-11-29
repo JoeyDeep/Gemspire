@@ -1,3 +1,11 @@
+--[[
+	PURPOSE:
+		Manage player data on the client side, including receiving data from the server.
+	USAGE:
+		N/A, this is a service module initialized by the engine
+
+]]
+
 local PlayerService = {
 	Data = {},
 }

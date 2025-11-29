@@ -1,3 +1,11 @@
+--[[
+	PURPOSE:
+		Manage player data on the server side, including loading and saving player profiles.
+	USAGE:
+		N/A, this is a service module initialized by the engines
+
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")

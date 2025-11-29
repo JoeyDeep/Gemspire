@@ -1,3 +1,17 @@
+--[[
+    PURPOSE:
+        Handle tool equipping and unequipping events for tools in the player's backpack.
+        !!! This module is in testing. The idea behind this backpack method is utilizing native Roblox backpack
+            features, and simply listening to tool equip/unequip and add/destroy events to trigger any additional
+            functionality as needed.
+
+        As it stands, this module is the only one listening for tool equip/unequip events, and handles all such actions.
+    USAGE:
+        ```lua
+        local BackpackTest = require(engine:get("BackpackTest"))
+        
+]]
+
 local BackpackTest = {
     setupTools = {}
 }

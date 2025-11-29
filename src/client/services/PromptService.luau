@@ -1,3 +1,18 @@
+--[[
+	PURPOSE:
+		Manage proximity prompts and their interactions with the player.
+
+	USAGE:
+	N/A, this is a service module initialized by the engine
+	Read more:
+		ProximityPrompt instances with CollectionSerivce tag "ProximityPrompt" will be
+		automatically managed by this service.
+
+		additionally,
+		dynamically created prompts can be made via PromptService.new()
+
+]]
+
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PromptService = {

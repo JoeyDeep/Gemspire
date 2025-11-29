@@ -1,3 +1,18 @@
+--[[
+	PURPOSE: 
+		Manage player speed affects and states, and set the player's humanoid WalkSpeed accordingly.
+	USAGE:
+		```lua
+		local SpeedManager = require(engine:get("SpeedManager"))
+		
+		SpeedManager:affect("speedBoost", 5) -- increase speed by 5
+		SpeedManager:setState("slowed", "freeze") -- set freeze state
+
+		SpeedManager:removeAffect("speedBoost") -- remove speed boost
+		SpeedManager:dropState("slowed", "freeze") -- drop freeze state
+		```
+]]
+
 local Players = game:GetService("Players")
 local SpeedManager = {
 	affects = {},
