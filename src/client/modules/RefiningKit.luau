@@ -1,3 +1,27 @@
+--[[
+	SINGLETON (Handler)
+
+	PURPOSE:
+		Handle refining kit functionality, including starting/stopping refining,
+		updating UI, handling input, and managing animations.
+
+		General sequence:
+			1. Player equips their pickaxe which triggers (RefiningKit:start)
+			2. Player initiates refining action (RefiningKit:requestRefine)
+			3. Refining process starts (RefiningKit:startRefining)
+			4. Player smashes rubble to refine (RefiningKit:setupSmash)
+			5. Refining process ends (RefiningKit:stopRefining)
+
+	USAGE:
+		```lua
+		local RefiningKit = require(engine:get("RefiningKit"))
+		RefiningKit:init(engine)
+		RefiningKit:start(data) -- data being the refining kit data
+		RefiningKit:stop()
+		```
+
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
@@ -21,15 +45,18 @@ end
 function RefiningKit:start(data)
 	RefiningKit.Data = data
 
+	-- ensure input is enabled
 	if RefiningKit._inputEnabled then
 		RefiningKit:disableInput()
 	end
 	RefiningKit:enableInput()
+	-- ensure animations are loaded
 	RefiningKit:initAnimations()
 
 	local ui = Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("UI")
 	local kitUI = ui:WaitForChild("Kit")
 
+	-- initialize/reset UI statistics
 	kitUI.Container.Bar.Slider.Size = UDim2.fromScale(data.now / data.max, 1)
 	kitUI.Container.Bar.CapacityText.Text = `{data.now}/{data.max}`
 	kitUI.Container.QualityText.Text = `Quality: {data.quality}%`
@@ -42,6 +69,7 @@ function RefiningKit:enableInput()
 		return
 	end
 
+	-- for each input type (keyboard, mobile, gamepad), connect the refine action
 	local InputData = engine:get("InputData")
 
 	RefiningKit.keyboardInput = RefiningKit.inputTrove:Add(Input.Keyboard.new(), "Destroy")
@@ -91,6 +119,7 @@ function RefiningKit:disableInput()
 	RefiningKit._inputEnabled = false
 end
 
+-- request to start refining process (from: "E to Sift" -like action)
 function RefiningKit:requestRefine()
 	local sifterStatus = engine:get("PlayerService").Data.container
 	local pickaxeToolClass = engine:get("Pickaxe").activeClass
@@ -103,6 +132,7 @@ function RefiningKit:requestRefine()
 		return
 	end
 
+	-- ensuring that in front of the player is a flat surface such that the refining camera won't clip through terrain
 	local charCF = character.HumanoidRootPart.CFrame
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -139,8 +169,6 @@ function RefiningKit:startRefining()
 	RefiningKit:updateTip(Input.PreferredInput.Current)
 	RefiningKit.cameraCFCache = camera.CFrame
 	engine:get("SpeedManager"):setState("RefiningKit", "freeze")
-
-	engine:get("BackpackService"):disable()
 
 	RefiningKit.animations.Kneel:Play(0.1)
 	engine.events.Inventory:FireServer("equipKit")
@@ -181,8 +209,6 @@ function RefiningKit:stopRefining()
 	for _, kitAnim in pairs(RefiningKit.animations) do
 		kitAnim:Stop()
 	end
-
-	engine:get("BackpackService"):enable()
 end
 
 function RefiningKit:setupSmash()

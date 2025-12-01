@@ -1,3 +1,22 @@
+--[[
+PURPOSE: 
+	Engine module to manage and provide access to other modules and services.
+
+USAGE:
+	```lua
+	local engine = require(path.to.Engine) -- OR... (below, & most common):
+	local engine
+	function someModule.init(engineModule)
+		engine = engineModule
+	end
+
+	local someModule = engine:get("SomeModuleName")
+
+	someModule:doSomeging() -- called to singleton
+	someModule.classCache[classIndex]:doSomething() -- called as instance of the class
+	```
+]]
+
 local engine = {
 	modules = {},
 	events = game:GetService("ReplicatedStorage").Events,

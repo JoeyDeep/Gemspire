@@ -1,3 +1,23 @@
+--[[
+	SINGLETON (Utility)
+
+	PURPOSE:
+		Handle dialog hooks and functions for dialogs in the game.
+		All DialogData.luau's "fncText" topics are processed by context here,
+		and returned for in-dialog response.
+
+	USAGE:
+		```lua
+		local DialogHooks = require(engine:get("DialogHooks"))
+		local text = DialogHooks:runFnc(selectedNode.fncText)
+
+		if selectedNode.pre then -- pre-NPC text dialog hook to decide what NPC will say
+			engine:get("DialogHooks"):runHooks(self, selectedNode.pre) -- self being a DialogService.luau class
+		end
+	end
+		```
+]]
+
 local DialogHooks = {}
 
 local engine
@@ -18,6 +38,8 @@ end
 
 function DialogHooks:runFnc(fncName)
 	local data = engine:get("PlayerService").Data
+
+	-- dialog for selling all loot of a a player's inventory
 	if fncName == "sellAllLoot" then
 		local lootToSell = data.inventory.loot
 		local totalEarned = 0
@@ -47,6 +69,8 @@ function DialogHooks:runFnc(fncName)
 			`You sold <font color="rgb(25, 255, 25)">{itemsSold}</font> items for a total of <font color="rgb(25, 255, 25)">{totalEarned}</font> coins.</font>`,
 			`I count <font color="rgb(25, 255, 25)">{itemsSold}</font> things, for <font color="rgb(25, 255, 25)">{totalEarned}</font> coins. Pleasure doing business with you!`,
 		}
+
+	-- dialog for selling held loot item
 	elseif fncName == "sellThis" then
 		local heldLoot
 		local lootData
@@ -77,6 +101,8 @@ function DialogHooks:runFnc(fncName)
 			`Pleasure doing business with you! Here's <font color="rgb(25, 255, 25)">{sellPrice}</font> coins for your <font color="rgb(255, 255, 0)">{lootDef.name}</font>.`,
 			`Beautiful <font color="rgb(255, 255, 0)">{lootDef.name}</font> you got there! Here's <font color="rgb(25, 255, 25)">{sellPrice}</font> coins for it.`,
 		}
+
+	-- dialog for appraising held loot item
 	elseif fncName == "appraiseThis" then
 		local lootData
 		for _, tool in pairs(data.inventory.loot) do
@@ -84,6 +110,18 @@ function DialogHooks:runFnc(fncName)
 				lootData = tool
 				break
 			end
+		end
+		if not lootData then
+			return {
+				`You need to hold up the item you want me to appraise.`,
+				`I can't appraise something I can't see! Hold it up for me.`,
+			}
+		end
+		if not lootData.lootKey then
+			return {
+				`This isn't something I'm willing to buy.`,
+				`Quite a nice item, but I don't deal with these kinds of things.`,
+			}
 		end
 		local lootDef = engine:get("Loot")[lootData.lootKey]
 		local sellPrice = math.round(lootDef.value_per_kg * lootData.kg)
@@ -94,6 +132,7 @@ function DialogHooks:runFnc(fncName)
 		}
 	end
 
+	-- if no function matched, return error
 	return "Error: Unknown function " .. fncName
 end
 

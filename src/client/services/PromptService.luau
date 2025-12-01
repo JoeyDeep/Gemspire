@@ -1,3 +1,23 @@
+--[[
+	CLASS: PromptService.new(existingPrompt: ProximityPrompt?) -> existingPrompt is optional; if provided, wraps that prompt
+	
+	PURPOSE:
+		Manage proximity prompts and their interactions with the player.
+		This service automatically handles prompts tagged with CollectionService tag "ProximityPrompt",
+		but also allows for dynamic creation of prompts via PromptService.new()
+
+		Essentially, this service wraps ProximityPrompt instances to provide
+		custom UI handling and easy management of multiple prompts and prompt types.
+
+	USAGE:
+		ProximityPrompt instances with CollectionSerivce tag "ProximityPrompt" will be
+		automatically managed by this service.
+
+		additionally,
+		dynamically created prompts can be made via PromptService.new()
+
+]]
+
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PromptService = {

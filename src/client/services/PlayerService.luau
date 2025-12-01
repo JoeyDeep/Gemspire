@@ -1,3 +1,13 @@
+--[[
+	SINGLETON (Handler)
+	
+	PURPOSE:
+		Manage player data on the client side, including receiving data from the server.
+	USAGE:
+		N/A, this is a service module initialized by the engine
+
+]]
+
 local PlayerService = {
 	Data = {},
 }
@@ -19,7 +29,6 @@ end
 function PlayerService:loaded()
 	PlayerService._loaded = true
 	-- engine:get("InventoryService").register(PlayerService.Data)
-	-- engine:get("BackpackService"):setup(PlayerService.Data)
 end
 
 return PlayerService

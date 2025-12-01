@@ -1,3 +1,24 @@
+--[[
+CLASS: Pickaxe.new(toolObj: physical tool instance)
+
+PURPOSE: 
+	Process pickaxe tool behavior, including strike mini-game and mining logic.
+	General sequence:
+		1. Player equips pickaxe (calls `equip` method).
+		2. Player initiates strike (calls `requestStrike` method).
+		3. If conditions are met, the strike mini-game starts (handled in `strike` method).
+		4. Player interacts with the mini-game (handled in `readStrikeGame` method).
+		5. Rewards and effects are processed based on mini-game outcome on the server, then reflected to the client.
+		6. Pickaxe state is reset after the mini-game concludes.
+
+USAGE:
+	```lua
+	local Pickaxe = require(engine:get("Pickaxe"))
+	local myPickaxeInstance = Pickaxe.new(toolObject) -- toolObject is the Tool instance representing the pickaxe
+	myPickaxeInstance:equip() -- called from Tool.luau when player equips the pickaxe
+	```
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)

@@ -1,12 +1,13 @@
 --[[
 	DOCUMENTATION:
+	```lua
 	speaker = {
 		entry = "conversation_id", -- conversation to start with
 		entry_decide = { -- optional, decide entry conversation based on conditions
 
 		conversations = {
 			nodeName = {
-				text = "Hello, {playerName}!", -- string or {string, string, ...} for random choice
+				text = "Hello, <playerName>!", -- string or {string, string, ...} for random choice
 				choice = "What do you want to ask?", -- optional, makes this a choice node
 				options = { -- required if choice is present
 					{
@@ -28,7 +29,7 @@
 				next = "next_node_name", -- optional, conversation node to go to next automatically after text
 			}
 		}
-	}
+	}```
 
 	HOOKS (pre/post): -> all hooks have a {..., delay = number} option to delay by seconds
 	[ ] {type = "flagOn", name = "FlagName"}
@@ -42,7 +43,7 @@
 	[ ] {type = "removeItem", id = "ItemID", amount = number}
 	[ ] {type = "teleport", location = "LocationName"}
 	[ ] {type = "transition", fadeInTime = number, fadeOutTime = number}
-	[ ] {type = "close"}
+	[X] {type = "close"}
 
 	ENTRY DECIDE & REQUIRE CONDITIONS:
 	[ ] level_min = number
@@ -52,6 +53,12 @@
 	[ ] spoken_to = "speaker_id"
 	[ ] has_quest = "quest_id"
 	[ ] completed_quest = "quest_id"
+
+	PARSE TAGS:
+	[X] <playerName> -> player's DisplayName
+	[ ] <playerLevel> -> player's current level
+	[ ] <coinAmount> -> player's current coins
+	[ ] <luminiteAmount> -> player's current luminite
 ]]
 
 return {
@@ -74,7 +81,6 @@ return {
 						id = "world",
 						optionText = "Tell me about Gemspire.",
 						next = "about_world",
-						-- Option-specific hooks (run when this option is chosen)
 						post = { { type = "addCoins", amount = 1 } },
 					},
 					{
@@ -109,7 +115,6 @@ return {
 			exit = {
 				text = 'Safe travels, <font color="rgb(255, 231, 94)"><playerName></font>. May your path be clear and your gems plentiful.',
 				post = { { type = "close" } },
-				-- (you can also just do post = { { type = "close" } })
 			},
 		},
 	},

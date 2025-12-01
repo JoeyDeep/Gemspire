@@ -1,3 +1,20 @@
+--[[
+	CLASS: InventoryService.register(playerClass: PlayerClass) -> registers player to be managed by InventoryService
+		PlayerClass is the class instance representing the player, from PlayerService.luau
+	PURPOSE:
+		Manage player inventories, including equipping tools, managing loot, and refining kits.
+		Also in charge of placing physical objects in the world representing the player's inventory.
+	
+		Most usage from server-sent events to Inventory RemoteEvent.
+		USAGE:
+		```lua
+		local InventoryService = require(engine:get("InventoryService"))
+		InventoryService:register(playerClass)
+		InventoryService:equipPickaxe(player, pickaxeName)
+		```
+
+]]
+
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

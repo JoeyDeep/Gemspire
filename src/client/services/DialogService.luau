@@ -1,3 +1,23 @@
+--[[
+	CLASS: DialogService.new(npcName: string) -> npcName corresponds to a model in workspace.Entities.NPCs
+
+	PURPOSE:
+		Manage dialog interactions between the player and NPCs. New instance for each approach.
+
+		General sequence:
+			1. Player approaches NPC and triggers dialog (handled by NPCHandler, triggered by PromptService)
+			2. DialogService instance is created for that NPC
+			3. DialogService processes DialogData for that NPC to determine entry point
+			4. DialogService manages dialog flow, including NPC speech, player choices, and dialog hooks
+			5. DialogService ends dialog when complete or player walks away
+	USAGE:
+		```lua
+		local DialogService = require(engine:get("DialogService"))
+		DialogService.new("NPC_Name") -- starts dialog with specified NPC
+		```
+
+]]
+
 local DialogService = {
 	playerDialogKey = nil,
 }
@@ -52,6 +72,7 @@ function DialogService:start()
 	end
 end
 
+-- run through logic to begin conversation at a certain node (see DialogData.luau)
 function DialogService:npcSpeak(node)
 	local DialogData = engine:get("DialogData")
 	local npcDialog = DialogData[self.npc]

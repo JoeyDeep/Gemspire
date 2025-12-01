@@ -1,3 +1,11 @@
+--[[
+	SINGLETON (Handler)
+	
+	PURPOSE:
+		Handle the player's HUD display, including currency amounts and updates.
+		All UI-related HUD functions are managed here.
+]]
+
 local HUD = {}
 
 local engine
@@ -12,6 +20,7 @@ function HUD.init(engineModule)
 	CurrencyCache.Name = "CurrencyCache"
 	CurrencyCache.Parent = workspace.Entities
 
+	-- build instance caches for potentially high-frequency demanded objects
 	HUD.coinCache = InstanceCache.new(ReplicatedStorage.Storage.CurrencyObjects.Coin, 51, CurrencyCache)
 	HUD.luminiteCache = InstanceCache.new(ReplicatedStorage.Storage.CurrencyObjects.Luminite, 51, CurrencyCache)
 end
@@ -24,6 +33,8 @@ function HUD:draw()
 	UI.Luminite.Amount.Text = tostring(data.luminite)
 end
 
+-- reflect currency changes to the HUD UI
+-- `type` is either "coins" or "luminite"
 function HUD:addCurrency(type, amount, isPhysical)
 	local playerData = engine:get("PlayerService").Data
 	local UI = engine.PlayerGui:WaitForChild("UI"):WaitForChild("HUD")
@@ -31,6 +42,7 @@ function HUD:addCurrency(type, amount, isPhysical)
 	local Debris = game:GetService("Debris")
 	local Sound = engine:get("Sound")
 
+	-- `isPhysical` determines whether to spawn physical currency objects that fly out from the player
 	if isPhysical then
 		local cache = {}
 		local cacheClass

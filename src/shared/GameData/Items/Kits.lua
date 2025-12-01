@@ -10,9 +10,9 @@ return {
 		rarity = 1,
 		stats = {
 			luck = 1,
-			capacity = 10,
-			loot_yield = { min = 1, max = 3 },
-			malletStrength = 5,
+			capacity = 10, -- amount of 'rubble' that can be held before refining
+			loot_yield = { min = 1, max = 3 }, -- amount of loot items gained per refine
+			malletStrength = 5, -- how much rubble is broken per mallet hit
 		},
 
 		containerPivotOffset = CFrame.new(0, 0, 0),
