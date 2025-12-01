@@ -150,10 +150,11 @@ function Pickaxe:strike()
 	-- terrain sanity
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { workspace.Terrain }
+	params.FilterDescendantsInstances = { workspace.Terrain, workspace.Entities.MineZones }
 	local cast = workspace:Raycast(character:GetPivot().Position, Vector3.new(0, -20, 0), params)
 	if not cast then
 		self:_resetStrikeState("no-terrain")
+		print("!")
 		return
 	end
 
@@ -288,6 +289,7 @@ function Pickaxe:requestStrike()
 	local MineZones = engine:get("MineZones")
 	local character = Players.LocalPlayer.Character
 	if not (character and self.equipped and tick() > (self.strikeCooldown or 0)) then
+		print("!")
 		return false
 	end
 
@@ -328,6 +330,7 @@ function Pickaxe:requestStrike()
 					self.animations.Idle:Play(0.1)
 				end)
 			end
+			print("!")
 			return false
 		end
 	else
@@ -359,6 +362,7 @@ function Pickaxe:requestStrike()
 				end)
 			end
 		end)
+		print("!")
 		return false
 	end
 end
