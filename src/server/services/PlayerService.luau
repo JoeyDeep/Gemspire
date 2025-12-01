@@ -1,6 +1,6 @@
 --[[
 	CLASS: PlayerService.new(player: Player)
-	
+
 	PURPOSE:
 		Manage player data on the server side, including loading and saving player profiles.
 	USAGE:
