@@ -1,3 +1,27 @@
+--[[
+	SINGLETON (Handler)
+
+	PURPOSE:
+		Handle refining kit functionality, including starting/stopping refining,
+		updating UI, handling input, and managing animations.
+
+		General sequence:
+			1. Player equips their pickaxe which triggers (RefiningKit:start)
+			2. Player initiates refining action (RefiningKit:requestRefine)
+			3. Refining process starts (RefiningKit:startRefining)
+			4. Player smashes rubble to refine (RefiningKit:setupSmash)
+			5. Refining process ends (RefiningKit:stopRefining)
+
+	USAGE:
+		```lua
+		local RefiningKit = require(engine:get("RefiningKit"))
+		RefiningKit:init(engine)
+		RefiningKit:start(data) -- data being the refining kit data
+		RefiningKit:stop()
+		```
+
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
@@ -21,15 +45,18 @@ end
 function RefiningKit:start(data)
 	RefiningKit.Data = data
 
+	-- ensure input is enabled
 	if RefiningKit._inputEnabled then
 		RefiningKit:disableInput()
 	end
 	RefiningKit:enableInput()
+	-- ensure animations are loaded
 	RefiningKit:initAnimations()
 
 	local ui = Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("UI")
 	local kitUI = ui:WaitForChild("Kit")
 
+	-- initialize/reset UI statistics
 	kitUI.Container.Bar.Slider.Size = UDim2.fromScale(data.now / data.max, 1)
 	kitUI.Container.Bar.CapacityText.Text = `{data.now}/{data.max}`
 	kitUI.Container.QualityText.Text = `Quality: {data.quality}%`
@@ -42,6 +69,7 @@ function RefiningKit:enableInput()
 		return
 	end
 
+	-- for each input type (keyboard, mobile, gamepad), connect the refine action
 	local InputData = engine:get("InputData")
 
 	RefiningKit.keyboardInput = RefiningKit.inputTrove:Add(Input.Keyboard.new(), "Destroy")
@@ -91,19 +119,20 @@ function RefiningKit:disableInput()
 	RefiningKit._inputEnabled = false
 end
 
+-- request to start refining process (from: "E to Sift" -like action)
 function RefiningKit:requestRefine()
 	local sifterStatus = engine:get("PlayerService").Data.container
-	local pickaxeToolClass = engine:get("InventoryService").tools.pickaxe
-	local pickaxeClass = pickaxeToolClass.typeClass
+	local pickaxeToolClass = engine:get("Pickaxe").activeClass
 	local character = Players.LocalPlayer.Character
 
-	if not pickaxeClass then
+	if not pickaxeToolClass then
 		engine
 			:get("NotificationService")
 			.new("Equip your pickaxe to refine!", { italic = true, textColor = Color3.fromRGB(255, 0, 0) })
 		return
 	end
 
+	-- ensuring that in front of the player is a flat surface such that the refining camera won't clip through terrain
 	local charCF = character.HumanoidRootPart.CFrame
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -130,14 +159,13 @@ function RefiningKit:startRefining()
 	local QuickTween = engine:get("QuickTween")
 	-- local containerStatus = PlayerService.Data.container
 	-- local kitData = engine:get("Kits")[PlayerService.Data.sifter]
-	local pickaxeClass = engine:get("InventoryService").tools.pickaxe
-	local pickaxeTypeClass = pickaxeClass.typeClass
+	local pickaxeClass = engine:get("Pickaxe").activeClass
 	local character = Players.LocalPlayer.Character
 	local camera = workspace.CurrentCamera
 
-	pickaxeTypeClass.animations.Idle:Stop()
+	pickaxeClass.animations.Idle:Stop()
 	RefiningKit.refining = true
-	pickaxeTypeClass.refining = true
+	pickaxeClass.refining = true
 	RefiningKit:updateTip(Input.PreferredInput.Current)
 	RefiningKit.cameraCFCache = camera.CFrame
 	engine:get("SpeedManager"):setState("RefiningKit", "freeze")
@@ -170,7 +198,7 @@ function RefiningKit:stopRefining()
 
 	engine.events.Inventory:FireServer("finishRefining")
 
-	local pickaxeTypeClass = engine:get("InventoryService").tools.pickaxe.typeClass
+	local pickaxeTypeClass = engine:get("Pickaxe").activeClass
 	pickaxeTypeClass.refining = false
 	pickaxeTypeClass.animations.Idle:Play(0.1)
 
@@ -349,11 +377,11 @@ function RefiningKit:update(data)
 			QuickTween(kitUI.Container.Bar.CapacityText.UIScale, 0.2, { Scale = 1 })
 		end)
 
-	local itemsFolder = Players.LocalPlayer.Character:FindFirstChild("Items")
-	if itemsFolder then
+	local character = Players.LocalPlayer.Character
+	if character then
 		local kitData = engine:get("Kits")[engine:get("PlayerService").Data.equipped.kit]
 		local equippedContainer = kitData.container
-		local containerModel = itemsFolder:FindFirstChild(equippedContainer)
+		local containerModel = character:FindFirstChild(equippedContainer)
 		if containerModel then
 			if data.now > 0 then
 				local fillMotor = containerModel.Handle.FillMotor

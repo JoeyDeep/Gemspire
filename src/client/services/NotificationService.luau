@@ -1,3 +1,16 @@
+--[[
+	CLASS: NotificationService.new(message: string, data: table) -> message is the notification text; data is optional settings
+	
+	PURPOSE:
+		Manage and display low-priority notifications to the player.
+	USAGE:
+		```lua
+		local NotificationService = require(engine:get("NotificationService"))
+		NotificationService.new("This is a notification message!", { timeout = 5, italic = true, textColor = Color3.new(1, 0, 0) })
+		```
+
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Promise = require(ReplicatedStorage.Packages.Promise)

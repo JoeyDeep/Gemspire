@@ -4,9 +4,9 @@ return {
 		description = "A rusty pickaxe that has seen better days. It is not very effective but can be used to mine basic ores.",
 		rarity = 1,
 		stats = {
-			strength = 5,
-			speed = 1,
-			density = 1,
+			strength = 5, -- how much 'rubble' is accumulated to container per hit
+			speed = 1, -- how fast the minigame bar moves
+			density = 1, -- minimum hardness of rubble that can be mined
 			luck = 1,
 		},
 

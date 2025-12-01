@@ -3,16 +3,16 @@ return {
 		name = "Basic Refining Kit",
 		description = "A simple refining kit that can separate basic materials from dirt and gravel. It is not very efficient but gets the job done.",
 
-		mallet = "basic",
-		container = "basic",
-		tray = "basic",
+		mallet = "basic_mallet",
+		container = "basic_container",
+		tray = "basic_tray",
 
 		rarity = 1,
 		stats = {
 			luck = 1,
-			capacity = 10,
-			loot_yield = { min = 1, max = 3 },
-			malletStrength = 1,
+			capacity = 10, -- amount of 'rubble' that can be held before refining
+			loot_yield = { min = 1, max = 3 }, -- amount of loot items gained per refine
+			malletStrength = 5, -- how much rubble is broken per mallet hit
 		},
 
 		containerPivotOffset = CFrame.new(0, 0, 0),

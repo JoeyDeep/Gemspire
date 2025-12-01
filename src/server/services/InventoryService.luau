@@ -1,3 +1,21 @@
+--[[
+	CLASS: InventoryService.register(playerClass: PlayerClass) -> registers player to be managed by InventoryService
+		PlayerClass is the class instance representing the player, from PlayerService.luau
+	PURPOSE:
+		Manage player inventories, including equipping tools, managing loot, and refining kits.
+		Also in charge of placing physical objects in the world representing the player's inventory.
+	
+		Most usage from server-sent events to Inventory RemoteEvent.
+		USAGE:
+		```lua
+		local InventoryService = require(engine:get("InventoryService"))
+		InventoryService:register(playerClass)
+		InventoryService:equipPickaxe(player, pickaxeName)
+		```
+
+]]
+
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InventoryService = {}
@@ -44,12 +62,18 @@ function InventoryService.init(engineModule)
 			InventoryService:unequipPickaxe(player, data)
 		elseif topic == "strikePickaxe" then
 			InventoryService:strikePickaxe(player, data)
+		elseif topic == "equipLoot" then
+			InventoryService:equipLoot(player, data)
+		elseif topic == "unequipLoot" then
+			InventoryService:unequipLoot(player, data)
 		elseif topic == "equipKit" then
 			InventoryService:equipRefiningKit(player)
 		elseif topic == "smashReplicate" then
 			InventoryService:smashReplicate(player, data)
 		elseif topic == "finishRefining" then
 			InventoryService:finishRefining(player)
+		elseif topic == "sellLoot" then
+			InventoryService:sellLoot(player, data)
 		end
 	end)
 end
@@ -58,7 +82,8 @@ function InventoryService.register(playerClass)
 	local player = playerClass.player
 
 	local function CharacterAdded(character)
-		InventoryService.draw(playerClass)
+		-- InventoryService.draw(playerClass)
+		local Kits = engine:get("Kits")
 
 		-- do not allow characters to collide with one another
 		for _, basePart in pairs(character:GetDescendants()) do
@@ -72,7 +97,43 @@ function InventoryService.register(playerClass)
 			end
 		end)
 
+		local equippedContainer = Kits[playerClass.profile.Data.equipped.kit].container
+		local kitData = Kits[playerClass.profile.Data.equipped.kit]
+		local containerModel = ReplicatedStorage.Storage.Tools.Containers[equippedContainer]:Clone()
+		containerModel:PivotTo(character:GetPivot())
+		containerModel.Handle.Motor6D.Part0 = character.Torso
+		containerModel.Handle.Motor6D.C0 = kitData.containerPivotOffset
+		containerModel.Parent = character
+
+		local rubbleMotor = containerModel.Handle.RubbleMotor
+		local fillMotor = containerModel.Handle.FillMotor
+		local containerStatus = InventoryService:getContainerStatus(playerClass.player)
+		local fillOffsets = kitData.containerFillOffsets
+		local progressCF = fillOffsets.Min:Lerp(fillOffsets.Max, containerStatus.now / containerStatus.max)
+		if containerStatus.now > 0 then
+			rubbleMotor.C0 = progressCF
+			fillMotor.C0 = progressCF:ToWorldSpace(fillOffsets.RubbleOffset)
+			containerModel.Rubble.Transparency = 0
+			containerModel.FillPlane.Transparency = 0
+		else
+			containerModel.Rubble.Transparency = 1
+			containerModel.FillPlane.Transparency = 1
+		end
+
 		character.Parent = workspace.Entities.Characters
+	end
+
+	local storage = ReplicatedStorage.Storage
+
+	local equippedPickaxe = playerClass.profile.Data.equipped.pickaxe
+	local pickaxeTool = storage.Tools.Pickaxes[equippedPickaxe]:Clone()
+	pickaxeTool:SetAttribute("Type", "Pickaxe")
+	pickaxeTool.Parent = player.Backpack
+
+	-- LOOT!
+	-- table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg, id = id })
+	for _, loot in pairs(playerClass.profile.Data.inventory.loot) do
+		InventoryService:drawHoldLoot(playerClass, loot, loot.id)
 	end
 
 	if player.Character and player.Character:IsDescendantOf(workspace) then
@@ -128,6 +189,66 @@ function InventoryService.draw(playerClass)
 		containerModel.Rubble.Transparency = 1
 		containerModel.FillPlane.Transparency = 1
 	end
+end
+
+function InventoryService:drawHoldLoot(playerClass, lootData, id)
+	local storage = ReplicatedStorage.Storage
+
+	local handle = storage.Loot[lootData.lootKey]:Clone()
+	local tool = Instance.new("Tool")
+	handle.Name = "Handle"
+	handle.Size *= lootData.kg
+	handle.Anchored = false
+	handle.Parent = tool
+	tool:SetAttribute("Type", "HoldLoot")
+	tool.Grip *= CFrame.Angles(0, math.rad(math.random(0, 360)), 0)
+	tool.Name = id
+	tool.ToolTip = `{lootData.lootKey} ({math.floor(lootData.kg * 100) / 100} kg)`
+	tool.Parent = playerClass.player.Backpack
+end
+
+function InventoryService:sellLoot(player, parameters)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+
+	local totalEarned = 0
+	local lootToSell = {}
+
+	if parameters == "all" then
+		lootToSell = table.clone(playerData.inventory.loot)
+	else
+		for _, loot in pairs(playerData.inventory.loot) do
+			if table.find(parameters, loot.id) then
+				table.insert(lootToSell, loot)
+				break
+			end
+		end
+	end
+
+	for index, loot in pairs(lootToSell) do
+		local lootDef = engine:get("Loot")[loot.name]
+		-- @todo: traits
+		if lootDef and not loot.locked then
+			local sellPrice = lootDef.value_per_kg or 0
+			totalEarned += sellPrice * loot.weight
+
+			table.remove(playerData.inventory.loot, table.find(playerData.inventory.loot, loot))
+			if player.Character and player.Character:FindFirstChild(loot.id) then
+				player.Character[loot.id]:Destroy()
+			elseif player.Backpack:FindFirstChild(loot.id) then
+				player.Backpack[loot.id]:Destroy()
+			end
+		else
+			table.remove(lootToSell, index) -- cannot sell locked or undefined loot
+		end
+	end
+
+	playerData.coins += math.round(totalEarned) -- round to 2 decimal places
+	engine.events.Inventory:FireClient(
+		player,
+		"sellComplete",
+		{ earned = totalEarned, newBalance = playerData.coins, toRemove = lootToSell }
+	)
 end
 
 function InventoryService:getContainerStatus(player)
@@ -200,7 +321,7 @@ function InventoryService:equipRefiningKit(player)
 	local equippedTray = kitData.tray
 	local equippedPickaxe = playerData.equipped.pickaxe
 
-	for _, pickaxePart in pairs(character.Items[equippedPickaxe]:GetChildren()) do
+	for _, pickaxePart in pairs(character[equippedPickaxe]:GetChildren()) do
 		if pickaxePart:IsA("BasePart") then
 			pickaxePart:SetAttribute("Transparency", pickaxePart.Transparency)
 			pickaxePart.Transparency = 1
@@ -234,7 +355,7 @@ function InventoryService:equipRefiningKit(player)
 		lootDefs = engine:get("Loot"),
 		baseLuck = 1,
 		opts = {
-			rng = Random.new(player.UserId),
+			rng = Random.new(), -- seed by player.UserId?
 		},
 	})
 
@@ -251,9 +372,12 @@ function InventoryService:equipRefiningKit(player)
 
 	PlayerService:Get(player).localData.refineProgress = containerStatus.now
 
-	for _, loot in pairs(rewards) do
+	local keyToId = {}
+	for index, loot in pairs(rewards) do
 		loot.kg = math.floor(loot.kg * 100) / 100 -- round to 2 decimal places
-		table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg })
+		local id = HttpService:GenerateGUID(false)
+		keyToId[index] = id
+		table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg, id = id })
 		if not playerData.statistics.found_loot[loot.lootKey] then
 			-- player found this loot for first time
 			playerData.statistics.found_loot[loot.lootKey] = { count = 1, largest = loot.kg }
@@ -268,7 +392,19 @@ function InventoryService:equipRefiningKit(player)
 
 	InventoryService:spawnLootInTray(trayModel, rewards)
 
-	engine.events.Inventory:FireClient(player, "readyToRefine")
+	local clientRewards = table.clone(rewards)
+	for index, loot in pairs(clientRewards) do
+		if loot.trait == "none" then
+			loot.trait = nil
+		end
+		loot._meta = nil
+		loot.id = keyToId[index]
+	end
+
+	for _, loot in pairs(clientRewards) do
+		InventoryService:drawHoldLoot(PlayerService:Get(player), loot, loot.id)
+	end
+	engine.events.Inventory:FireClient(player, "readyToRefine", clientRewards)
 	playerData.container = {}
 end
 
@@ -294,7 +430,7 @@ function InventoryService:finishRefining(player)
 		end
 	end
 
-	for _, pickaxePart in pairs(character.Items[equippedPickaxe]:GetChildren()) do
+	for _, pickaxePart in pairs(character[equippedPickaxe]:GetChildren()) do
 		local transparency = pickaxePart:GetAttribute("Transparency")
 		if pickaxePart:IsA("BasePart") and transparency then
 			pickaxePart.Transparency = transparency
@@ -410,6 +546,60 @@ function InventoryService:unequipPickaxe(player, pickaxeName)
 			pickaxe = findPickaxe()
 		end
 		stowPickaxe(pickaxe)
+	end
+end
+
+-----------------------
+-- loot hold methods --
+-----------------------
+
+function InventoryService:equipLoot(player, lootID)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+
+	local inventory = playerData.inventory
+	local desiredLoot
+
+	for _, loot in pairs(inventory.loot) do
+		if loot.id == lootID then
+			desiredLoot = loot
+			break
+		end
+	end
+
+	-- @todo: traits
+
+	if desiredLoot then
+		local lootModel = ReplicatedStorage.Storage.Loot[desiredLoot.name]:Clone()
+		lootModel.Size *= desiredLoot.weight
+		local weld = Instance.new("Weld")
+		weld.Parent = lootModel
+		weld.Part0 = lootModel
+		weld.Part1 = player.Character["Right Arm"]
+		weld.C0 = CFrame.new(0, 1 + lootModel.Size.Y / 2, 0)
+		lootModel.Anchored = false
+		lootModel.Parent = player.Character
+	end
+end
+
+function InventoryService:unequipLoot(player, lootID)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:GetData(player)
+
+	local inventory = playerData.inventory
+	local desiredLoot
+
+	for _, loot in pairs(inventory.loot) do
+		if loot.id == lootID then
+			desiredLoot = loot
+			break
+		end
+	end
+
+	if desiredLoot then
+		if player.Character:FindFirstChild(desiredLoot.name) then
+			player.Character[desiredLoot.name]:Destroy()
+		end
 	end
 end
 

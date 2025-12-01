@@ -1,6 +1,27 @@
+--[[
+PURPOSE: 
+	Engine module to manage and provide access to other modules and services.
+
+USAGE:
+	```lua
+	local engine = require(path.to.Engine) -- OR... (below, & most common):
+	local engine
+	function someModule.init(engineModule)
+		engine = engineModule
+	end
+
+	local someModule = engine:get("SomeModuleName")
+
+	someModule:doSomeging() -- called to singleton
+	someModule.classCache[classIndex]:doSomething() -- called as instance of the class
+	```
+]]
+
 local engine = {
 	modules = {},
 	events = game:GetService("ReplicatedStorage").Events,
+	player = game:GetService("Players").LocalPlayer,
+	PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),
 }
 engine.__index = engine
 
@@ -34,8 +55,14 @@ local function initModules()
 	for _, module in pairs(engine.modules) do
 		if typeof(module) == "table" and module.init and not module.___loaded then
 			-- Call the init function if it exists
+			local start = tick()
+
 			module.init(engine)
 			module.___loaded = true
+
+			if tick() - start > 0.1 then
+				warn(`[!!!] {module.Name} took {tick() - start} seconds to load`)
+			end
 		end
 	end
 end
@@ -50,5 +77,6 @@ for _, folderName in ipairs(foldersToLoad) do
 	end
 end
 initModules()
+print(`[Engine] Client Loaded`)
 
 return engine

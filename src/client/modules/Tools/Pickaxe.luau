@@ -1,10 +1,33 @@
+--[[
+CLASS: Pickaxe.new(toolObj: physical tool instance)
+
+PURPOSE: 
+	Process pickaxe tool behavior, including strike mini-game and mining logic.
+	General sequence:
+		1. Player equips pickaxe (calls `equip` method).
+		2. Player initiates strike (calls `requestStrike` method).
+		3. If conditions are met, the strike mini-game starts (handled in `strike` method).
+		4. Player interacts with the mini-game (handled in `readStrikeGame` method).
+		5. Rewards and effects are processed based on mini-game outcome on the server, then reflected to the client.
+		6. Pickaxe state is reset after the mini-game concludes.
+
+USAGE:
+	```lua
+	local Pickaxe = require(engine:get("Pickaxe"))
+	local myPickaxeInstance = Pickaxe.new(toolObject) -- toolObject is the Tool instance representing the pickaxe
+	myPickaxeInstance:equip() -- called from Tool.luau when player equips the pickaxe
+	```
+]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
 local Input = require(ReplicatedStorage.Packages.Input)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local Trove = require(ReplicatedStorage.Packages.Trove)
-local Pickaxe = {}
+local Pickaxe = {
+	activeClass = nil,
+}
 Pickaxe.__index = Pickaxe
 
 local engine
@@ -16,15 +39,16 @@ local CORE_ANIMS = { "Idle", "Windup", "ReadyLoop", "Strike", "Invalid" }
 
 -- new Pickaxe class, inherits from Tool
 -- safe to assume this is called when a Character is properly loaded
-function Pickaxe.new(name, toolClass)
-	local pickaxeData = engine:get("Pickaxes")[name]
+function Pickaxe.new(toolObj)
+	local pickaxeData = engine:get("Pickaxes")[toolObj.Name]
 	local self = setmetatable({}, Pickaxe)
 
-	self.name = name
-	self.displayName = pickaxeData.name
-	self.model = Players.LocalPlayer.Character:WaitForChild("Items"):WaitForChild(name)
-	self.toolClass = toolClass
+	self.tool = toolObj
 	self.stats = pickaxeData.stats
+
+	self.equipKey = 0
+	self.equipped = false
+
 	self.cameraShaker = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(cameraCF)
 		workspace.CurrentCamera.CFrame *= cameraCF
 	end)
@@ -35,6 +59,14 @@ function Pickaxe.new(name, toolClass)
 
 	self:initAnimations()
 
+	toolObj.Equipped:Connect(function()
+		self:equip()
+	end)
+	toolObj.Unequipped:Connect(function()
+		self:unequip()
+	end)
+
+	Pickaxe.activeClass = self
 	return self
 end
 
@@ -139,10 +171,11 @@ function Pickaxe:strike()
 	-- terrain sanity
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { workspace.Terrain }
+	params.FilterDescendantsInstances = { workspace.Terrain, workspace.Entities.MineZones }
 	local cast = workspace:Raycast(character:GetPivot().Position, Vector3.new(0, -20, 0), params)
 	if not cast then
 		self:_resetStrikeState("no-terrain")
+		print("!")
 		return
 	end
 
@@ -250,7 +283,7 @@ function Pickaxe:readStrikeGame()
 			-- Enter STRIKE exclusively
 			self:_playOnly("Strike", 0)
 			self.animations.Strike:GetMarkerReachedSignal("Hit"):Once(function()
-				engine:get("Sound"):playLocalFromRandom("PickaxeStrike", self.model.Handle)
+				engine:get("Sound"):playLocalFromRandom("PickaxeStrike", self.tool.Handle)
 				if self.gamepadInput.SupportsVibration then
 					self.gamepadInput:PulseMotor(Enum.VibrationMotor.Large, 0.6, 0.1)
 				end
@@ -276,7 +309,8 @@ end
 function Pickaxe:requestStrike()
 	local MineZones = engine:get("MineZones")
 	local character = Players.LocalPlayer.Character
-	if not (character and self.toolClass.equipped and tick() > (self.strikeCooldown or 0)) then
+	if not (character and self.equipped and tick() > (self.strikeCooldown or 0)) then
+		print("!")
 		return false
 	end
 
@@ -317,6 +351,7 @@ function Pickaxe:requestStrike()
 					self.animations.Idle:Play(0.1)
 				end)
 			end
+			print("!")
 			return false
 		end
 	else
@@ -348,6 +383,7 @@ function Pickaxe:requestStrike()
 				end)
 			end
 		end)
+		print("!")
 		return false
 	end
 end
@@ -356,7 +392,7 @@ function Pickaxe:enableInput()
 	self:_resetStrikeState("enable-input") -- puts us in idle & clears flags, sets short cooldown
 
 	local function processInput()
-		if not self.toolClass.equipped then
+		if not self.equipped then
 			return
 		end
 		if tick() <= (self.strikeCooldown or 0) then
@@ -485,15 +521,16 @@ end
 
 function Pickaxe:equip()
 	local key = tick()
-	self.toolClass.equipKey = key
+	self.equipKey = key
+	self.equipped = true
 
 	self.connections.equipReached = self.animations.Equip:GetMarkerReachedSignal("Equip"):Once(function()
-		if key == self.toolClass.equipKey then
+		if key == self.equipKey then
 			engine.events.Inventory:FireServer("equipPickaxe", self.name)
 		end
 	end)
 	self.connections.equipStopped = self.animations.Equip.Stopped:Once(function()
-		if key == self.toolClass.equipKey then
+		if key == self.equipKey then
 			self.animations.Idle:Play()
 		end
 	end)
@@ -508,10 +545,11 @@ end
 
 function Pickaxe:unequip()
 	local key = tick()
-	self.toolClass.equipKey = key
+	self.equipKey = key
+	self.equipped = false
 
 	self.connections.unequipReached = self.animations.Equip:GetMarkerReachedSignal("Equip"):Once(function()
-		if key == self.toolClass.equipKey then
+		if key == self.equipKey then
 			engine.events.Inventory:FireServer("unequipPickaxe", self.name)
 		end
 	end)

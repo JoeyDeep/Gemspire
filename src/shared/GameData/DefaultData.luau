@@ -14,7 +14,9 @@ return {
 		kit = "basic",
 		equipment = {},
 	},
+
 	quests = {},
+	dialog_history = {},
 	container = {}, -- { now = 0, max = 0, quality = 0-100 }
 
 	statistics = {
