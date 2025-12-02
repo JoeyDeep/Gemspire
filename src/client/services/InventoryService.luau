@@ -25,7 +25,7 @@ function InventoryService.init(engineModule)
 			engine:get("RefiningKit"):setupSmash()
 
 			for _, reward in pairs(data) do
-				table.insert(engine:get("PlayerService").Data.inventory.loot, reward)
+				table.insert(engine:get("PlayerService").data.inventory.loot, reward)
 				-- [!] @TODO: add side ui to show what they got
 			end
 		elseif topic == "refineReplicate" then
@@ -33,7 +33,7 @@ function InventoryService.init(engineModule)
 				:get("RefineReplicate")
 				:setProgress(Players[data.hostPlayerName], data.equippedKit, data.progress, data.targetRubble)
 		elseif topic == "sellComplete" then
-			local playerData = engine:get("PlayerService").Data
+			local playerData = engine:get("PlayerService").data
 			for _, lootSold in pairs(data.toRemove) do
 				for i, tool in pairs(playerData.inventory.loot) do
 					if tool.id == lootSold.id then
@@ -97,7 +97,7 @@ function InventoryService:setupTool(toolObj)
 end
 
 function InventoryService:updateRefiningKitStatus(data)
-	engine:get("PlayerService").Data.container = data
+	engine:get("PlayerService").data.container = data
 	engine:get("RefiningKit"):update(data)
 end
 

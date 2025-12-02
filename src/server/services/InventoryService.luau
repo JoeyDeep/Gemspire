@@ -194,6 +194,8 @@ end
 function InventoryService:drawHoldLoot(playerClass, lootData, id)
 	local storage = ReplicatedStorage.Storage
 
+	local truncatedWeight = math.floor(lootData.kg * 100) / 100
+
 	local handle = storage.Loot[lootData.lootKey]:Clone()
 	local tool = Instance.new("Tool")
 	handle.Name = "Handle"
@@ -201,15 +203,18 @@ function InventoryService:drawHoldLoot(playerClass, lootData, id)
 	handle.Anchored = false
 	handle.Parent = tool
 	tool:SetAttribute("Type", "HoldLoot")
+	tool:SetAttribute("LootKey", lootData.lootKey)
+	tool:SetAttribute("Weight", truncatedWeight)
+	tool:SetAttribute("Trait", lootData.trait or "none")
 	tool.Grip *= CFrame.Angles(0, math.rad(math.random(0, 360)), 0)
 	tool.Name = id
-	tool.ToolTip = `{lootData.lootKey} ({math.floor(lootData.kg * 100) / 100} kg)`
+	tool.ToolTip = `{lootData.lootKey} ({truncatedWeight} kg)`
 	tool.Parent = playerClass.player.Backpack
 end
 
 function InventoryService:sellLoot(player, parameters)
 	local PlayerService = engine:get("PlayerService")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 
 	local totalEarned = 0
 	local lootToSell = {}
@@ -253,7 +258,7 @@ end
 
 function InventoryService:getContainerStatus(player)
 	local PlayerService = engine:get("PlayerService")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 	local Kits = engine:get("Kits")
 	local equippedKit = playerData.equipped.kit
 	local kitData = Kits[equippedKit].stats
@@ -309,7 +314,7 @@ end
 
 function InventoryService:equipRefiningKit(player)
 	local PlayerService = engine:get("PlayerService")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 	local Kits = engine:get("Kits")
 	local LootRNG = engine:get("LootRNG")
 
@@ -370,7 +375,7 @@ function InventoryService:equipRefiningKit(player)
 		end
 	end
 
-	PlayerService:Get(player).localData.refineProgress = containerStatus.now
+	PlayerService:get(player).localData.refineProgress = containerStatus.now
 
 	local keyToId = {}
 	for index, loot in pairs(rewards) do
@@ -402,7 +407,7 @@ function InventoryService:equipRefiningKit(player)
 	end
 
 	for _, loot in pairs(clientRewards) do
-		InventoryService:drawHoldLoot(PlayerService:Get(player), loot, loot.id)
+		InventoryService:drawHoldLoot(PlayerService:get(player), loot, loot.id)
 	end
 	engine.events.Inventory:FireClient(player, "readyToRefine", clientRewards)
 	playerData.container = {}
@@ -411,7 +416,7 @@ end
 function InventoryService:finishRefining(player)
 	local PlayerService = engine:get("PlayerService")
 	local Kits = engine:get("Kits")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 
 	local equippedPickaxe = playerData.equipped.pickaxe
 	local equippedTray = Kits[playerData.equipped.kit].tray
@@ -443,7 +448,7 @@ end
 function InventoryService:smashReplicate(player, data)
 	local PlayerService = engine:get("PlayerService")
 
-	local playerClass = PlayerService:Get(player)
+	local playerClass = PlayerService:get(player)
 	local playerData = playerClass.profile.Data
 	local kitData = engine:get("Kits")[playerData.equipped.kit]
 
@@ -466,7 +471,7 @@ end
 ---------------------
 function InventoryService:strikePickaxe(player, score)
 	local PlayerService = engine:get("PlayerService")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 	local Pickaxes = engine:get("Pickaxes")
 	local MineZones = engine:get("MineZones")
 
@@ -485,12 +490,15 @@ function InventoryService:strikePickaxe(player, score)
 		zone = zoneCast.Instance.Parent.Name
 	end
 
+	local lastStrike = PlayerService:get(player).localData.lastPickaxeStrike
+
 	if
 		equippedPickaxe
 		and refiningKitStatus.now < refiningKitStatus.max
 		and zone
 		and MineZones[zone]
 		and MineZones[zone].minDensity <= pickaxeData.strength
+		and tick() - lastStrike > 0.25
 	then
 		local amount = math.min(pickaxeData.strength, refiningKitStatus.max - refiningKitStatus.now)
 		table.insert(playerData.container, {
@@ -500,6 +508,7 @@ function InventoryService:strikePickaxe(player, score)
 			zone = zone,
 		})
 
+		PlayerService:get(player).localData.lastPickaxeStrike = tick()
 		engine.events.Inventory:FireClient(player, "kitUpdate", InventoryService:getContainerStatus(player))
 	end
 end
@@ -507,7 +516,7 @@ end
 function InventoryService:equipPickaxe(player, pickaxeName)
 	local PlayerService = engine:get("PlayerService")
 	local Pickaxes = engine:get("Pickaxes")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 
 	local function findPickaxe()
 		return player.Character and player.Character.Items:FindFirstChild(pickaxeName)
@@ -520,7 +529,7 @@ function InventoryService:equipPickaxe(player, pickaxeName)
 	if playerData.equipped.pickaxe == pickaxeName then
 		local pickaxe = findPickaxe()
 		if not pickaxe then
-			InventoryService.draw(PlayerService:Get(player))
+			InventoryService.draw(PlayerService:get(player))
 			pickaxe = findPickaxe()
 		end
 		holdPickaxe(pickaxe)
@@ -529,7 +538,7 @@ end
 function InventoryService:unequipPickaxe(player, pickaxeName)
 	local PlayerService = engine:get("PlayerService")
 	local Pickaxes = engine:get("Pickaxes")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 
 	local function findPickaxe()
 		return player.Character and player.Character.Items:FindFirstChild(pickaxeName)
@@ -542,7 +551,7 @@ function InventoryService:unequipPickaxe(player, pickaxeName)
 	if playerData.equipped.pickaxe == pickaxeName then
 		local pickaxe = findPickaxe()
 		if not pickaxe then
-			InventoryService.draw(PlayerService:Get(player))
+			InventoryService.draw(PlayerService:get(player))
 			pickaxe = findPickaxe()
 		end
 		stowPickaxe(pickaxe)
@@ -555,7 +564,7 @@ end
 
 function InventoryService:equipLoot(player, lootID)
 	local PlayerService = engine:get("PlayerService")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 
 	local inventory = playerData.inventory
 	local desiredLoot
@@ -584,7 +593,7 @@ end
 
 function InventoryService:unequipLoot(player, lootID)
 	local PlayerService = engine:get("PlayerService")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 
 	local inventory = playerData.inventory
 	local desiredLoot

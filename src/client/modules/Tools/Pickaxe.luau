@@ -410,7 +410,7 @@ function Pickaxe:enableInput()
 
 		-- container is full
 		local PlayerService = engine:get("PlayerService")
-		if PlayerService.Data.container.now == PlayerService.Data.container.max then
+		if PlayerService.data.container.now == PlayerService.data.container.max then
 			engine:get("RefiningKit"):warnFull()
 			return
 		end
@@ -540,7 +540,7 @@ function Pickaxe:equip()
 	self.animations.Equip:Play()
 	-- self.animations.Equip:AdjustSpeed(1.5)
 
-	engine:get("RefiningKit"):start(engine:get("PlayerService").Data.container)
+	engine:get("RefiningKit"):start(engine:get("PlayerService").data.container)
 end
 
 function Pickaxe:unequip()
