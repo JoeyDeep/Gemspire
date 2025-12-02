@@ -26,6 +26,15 @@ DialogService.__index = DialogService
 local engine
 function DialogService.init(engineModule)
 	engine = engineModule
+
+	engine.events.Dialog.OnClientEvent:Connect(function(event,data)
+		print("client event")
+		print(event)
+		if event=="historyUpdated" then 
+			DialogService:onHistoryUpdated(data)
+		end
+	end)
+
 end
 
 function DialogService.new(npc)
@@ -70,6 +79,12 @@ function DialogService:start()
 			end
 		end
 	end
+end
+
+function DialogService:onHistoryUpdated(data)
+	print("updating history")
+	local playerData = engine:get("PlayerService").Data
+	playerData.dialog_history = data;
 end
 
 -- run through logic to begin conversation at a certain node (see DialogData.luau)
@@ -145,11 +160,23 @@ function DialogService:displayChoices(options)
 		end
 	end
 
+	local playerData = engine:get("PlayerService").Data
+	
+	local historyWithNpc = playerData.dialog_history[self.npc]
+	print(historyWithNpc)
+
 	for i, option in pairs(optionsToDisplay) do
 		local optionUI = responseUI.Container.Template:Clone()
 		optionUI.Name = "Option" .. i
 		local text = self:parseText(option.optionText)
-		text = `<font color="rgb(255, 231, 94)">{i}. </font>{text}`
+		-- @TODO We may need rich text capibilities for options in the future. If so rework this.
+		local color = "rgb(255, 255, 255)"
+		
+		if historyWithNpc and historyWithNpc[option.id] then
+				color = "rgb(180, 180, 180)"
+		end
+
+		text = `<font color="rgb(255, 231, 94)">{i}. </font><font color="{color}">{text}</font>`
 
 		optionUI.TextLabel.Text = ""
 		optionUI.UIPadding.PaddingLeft = UDim.new(0.1, 0)
@@ -162,6 +189,7 @@ function DialogService:displayChoices(options)
 					oldOption.TextButton.Active = false
 				end
 			end
+			engine.events.Dialog:FireServer("playerResponse",{npc=self.npc,option=option})
 			self:playerRespond(option.bubbleText or option.optionText)
 			self:npcSpeak(option.next)
 		end)
