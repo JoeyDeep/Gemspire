@@ -17,23 +17,23 @@ function PlayerDialogService.init(engineModule)
 
 	engine.events.Dialog.OnServerEvent:Connect(function(player,event,data)
 		print("here")
-		PlayerDialogService:HandleEvent(player,event, data)
+		PlayerDialogService:handleEvent(player,event, data)
 	end)
 
 end
 
 
-function PlayerDialogService:HandleEvent(player,event,data)
+function PlayerDialogService:handleEvent(player,event,data)
 	print(event)
 	print(data)
 	if event=="playerResponse" then
-		PlayerDialogService:HandlePlayerResponse(player,event,data)
+		PlayerDialogService:handlePlayerResponse(player,event,data)
 	end
 end
 
 -- Handlers ---------------------
 
-function PlayerDialogService:HandlePlayerResponse(player,event,data)
+function PlayerDialogService:handlePlayerResponse(player,event,data)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:GetData(player)
 
