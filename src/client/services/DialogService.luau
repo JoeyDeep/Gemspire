@@ -273,7 +273,7 @@ end
 
 function DialogService:checkRequirements(require)
 	-- local PlayerService = engine:get("PlayerService")
-	-- local PlayerData = PlayerService.Data
+	-- local PlayerData = PlayerService.data
 
 	-- if require.level_min and PlayerData.level < require.level_min then
 	-- 	return false

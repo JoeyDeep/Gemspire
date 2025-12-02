@@ -410,7 +410,7 @@ function Pickaxe:enableInput()
 
 		-- container is full
 		local PlayerService = engine:get("PlayerService")
-		if PlayerService.Data.container.now == PlayerService.Data.container.max then
+		if PlayerService.data.container.now == PlayerService.data.container.max then
 			engine:get("RefiningKit"):warnFull()
 			return
 		end

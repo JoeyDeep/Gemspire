@@ -157,8 +157,8 @@ function RefiningKit:startRefining()
 
 	-- local PlayerService = engine:get("PlayerService")
 	local QuickTween = engine:get("QuickTween")
-	-- local containerStatus = PlayerService.Data.container
-	-- local kitData = engine:get("Kits")[PlayerService.Data.sifter]
+	-- local containerStatus = PlayerService.data.container
+	-- local kitData = engine:get("Kits")[PlayerService.data.sifter]
 	local pickaxeClass = engine:get("Pickaxe").activeClass
 	local character = Players.LocalPlayer.Character
 	local camera = workspace.CurrentCamera
@@ -174,6 +174,7 @@ function RefiningKit:startRefining()
 	engine.events.Inventory:FireServer("equipKit")
 
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+	engine.PlayerGui.UI.Inventory.Visible = false
 
 	Promise.delay(0.1):andThen(function()
 		camera.CameraType = Enum.CameraType.Scriptable
@@ -191,6 +192,8 @@ function RefiningKit:stopRefining()
 	Promise.fromEvent(QuickTween(workspace.CurrentCamera, 0.25, { CFrame = RefiningKit.cameraCFCache }).Completed)
 		:andThen(function()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			engine.PlayerGui.UI.Inventory.Visible = true
 			workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
 		end)
 
@@ -218,8 +221,8 @@ function RefiningKit:setupSmash()
 	local Sound = engine:get("Sound")
 
 	local character = Players.LocalPlayer.Character
-	local equippedTray = Kits[PlayerService.Data.equipped.kit].tray
-	local containerStatus = PlayerService.Data.container
+	local equippedTray = Kits[PlayerService.data.equipped.kit].tray
+	local containerStatus = PlayerService.data.container
 
 	local lastSmash = tick()
 
@@ -234,7 +237,7 @@ function RefiningKit:setupSmash()
 		local trayModel = character[`{equippedTray}_Tray`]
 		local traySize = trayModel:GetExtentsSize()
 		local middlePos = trayModel.Handle.Middle.WorldPosition
-		local malletStrength = Kits[PlayerService.Data.equipped.kit].stats.malletStrength
+		local malletStrength = Kits[PlayerService.data.equipped.kit].stats.malletStrength
 
 		local chosenRubble = trayModel.RefineEntities.Rubble:GetChildren()[math.random(
 			1,
@@ -259,15 +262,15 @@ function RefiningKit:setupSmash()
 		animation:GetMarkerReachedSignal("Hit"):Once(function()
 			Sound:playLocalFromRandom("RefineSmash", trayModel.Handle).PlaybackSpeed = Random.new():NextNumber(0.9, 1.1)
 			RefiningKit.refineProgress = math.clamp(RefiningKit.refineProgress - malletStrength, 0, containerStatus.max)
-			PlayerService.Data.container.now = RefiningKit.refineProgress
+			PlayerService.data.container.now = RefiningKit.refineProgress
 			engine:get("RefineReplicate"):setProgress(
 				Players.LocalPlayer,
-				PlayerService.Data.equipped.kit,
+				PlayerService.data.equipped.kit,
 				RefiningKit.refineProgress / containerStatus.max,
 				chosenRubble
 			)
 
-			RefiningKit:update(PlayerService.Data.container)
+			RefiningKit:update(PlayerService.data.container)
 			if RefiningKit.refineProgress <= 0 then
 				RefiningKit:stopRefining()
 			end
