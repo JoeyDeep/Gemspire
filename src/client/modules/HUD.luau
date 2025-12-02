@@ -26,7 +26,7 @@ function HUD.init(engineModule)
 end
 
 function HUD:draw()
-	local data = engine:get("PlayerService").Data
+	local data = engine:get("PlayerService").data
 	local UI = engine.PlayerGUi:WaitForChild("UI"):WaitForChild("HUD")
 
 	UI.Coins.Amount.Text = tostring(data.coins)
@@ -36,7 +36,7 @@ end
 -- reflect currency changes to the HUD UI
 -- `type` is either "coins" or "luminite"
 function HUD:addCurrency(type, amount, isPhysical)
-	local playerData = engine:get("PlayerService").Data
+	local playerData = engine:get("PlayerService").data
 	local UI = engine.PlayerGui:WaitForChild("UI"):WaitForChild("HUD")
 	local QuickTween = engine:get("QuickTween")
 	local Debris = game:GetService("Debris")
