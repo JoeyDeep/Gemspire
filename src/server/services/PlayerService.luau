@@ -48,6 +48,8 @@ end
 
 -- called when a new player joins and their profile is fully server-loaded
 function PlayerService:newPlayerSetup()
+	self.localData.lastPickaxeStrike = 0
+
 	engine.events.PlayerData:FireClient(self.player, "provideClientData", self:getClientData())
 end
 
@@ -95,7 +97,21 @@ function PlayerService.new(player)
 	self:newPlayerSetup()
 end
 
-function PlayerService:GetData(player)
+function PlayerService:updateClient(dataTable)
+	local toSend = self:getClientData()
+	if dataTable and typeof(dataTable) == "table" then
+		local conciseSend = {}
+		for _, key in pairs(dataTable) do
+			conciseSend[key] = toSend[key]
+		end
+		toSend = conciseSend
+		engine.events.PlayerData:FireClient(self.player, "updateClientData", toSend)
+		return
+	end
+	engine.events.PlayerData:FireClient(self.player, "setClientData", toSend)
+end
+
+function PlayerService:getData(player)
 	if not player or not player:IsA("Player") then
 		return nil
 	end
@@ -103,7 +119,7 @@ function PlayerService:GetData(player)
 	return PlayerService.players[player.Name].profile.Data
 end
 
-function PlayerService:GetProfile(player)
+function PlayerService:getProfile(player)
 	if not player or not player:IsA("Player") then
 		return nil
 	end
@@ -111,7 +127,7 @@ function PlayerService:GetProfile(player)
 	return PlayerService.players[player.Name].profile
 end
 
-function PlayerService:Get(player)
+function PlayerService:get(player)
 	if not player or not player:IsA("Player") then
 		return nil
 	end

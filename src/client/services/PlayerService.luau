@@ -9,7 +9,7 @@
 ]]
 
 local PlayerService = {
-	Data = {},
+	data = {},
 }
 
 local engine
@@ -18,17 +18,32 @@ function PlayerService.init(engineModule)
 
 	-- await player data from server
 	engine.events.PlayerData.OnClientEvent:Connect(function(topic, data)
+		-- first time receiving player data from server
 		if topic == "provideClientData" then
-			PlayerService.Data = data
-			print(`Client Data:`, PlayerService.Data)
+			PlayerService.data = data
+			print(`Client Data:`, PlayerService.data)
 			PlayerService:loaded()
+
+		-- full set from server
+		elseif topic == "setClientData" then
+			PlayerService.data = data
+		-- partial update from server
+		elseif topic == "updateClientData" then
+			for key, value in pairs(data) do
+				PlayerService.data[key] = value
+			end
+			PlayerService:processClientDataUpdate(data)
 		end
 	end)
 end
 
+function PlayerService:processClientDataUpdate(data)
+	-- handle any special cases for data updates here
+end
+
 function PlayerService:loaded()
 	PlayerService._loaded = true
-	-- engine:get("InventoryService").register(PlayerService.Data)
+	-- engine:get("InventoryService").register(PlayerService.data)
 end
 
 return PlayerService

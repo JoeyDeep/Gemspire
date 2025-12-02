@@ -58,11 +58,11 @@ function HUD:addCurrency(type, amount, isPhysical)
 		end
 
 		for _, obj in pairs(cache) do
-			obj:PivotTo(engine.player.Character:GetPivot():ToWorldSpace(CFrame.new(0, 3, -5)))
+			obj:PivotTo(engine.player.Character:GetPivot():ToWorldSpace(CFrame.new(0, 5, -5)))
 			obj.Trail.Enabled = true
 			obj.Anchored = false
 			obj.CollisionGroup = "Currency"
-			obj:ApplyImpulse(Vector3.new(math.random(-0.05, 0.05), math.random(0.15, 0.3), math.random(-0.05, 0.05))) -- math.random(-0.1, 0.1), math.random(0.15, 0.3), math.random(-0.1, 0.1)
+			obj:ApplyImpulse(Vector3.new(math.random(-0.05, 0.05), math.random(1, 1), math.random(-0.05, 0.05))) -- math.random(-0.1, 0.1), math.random(0.15, 0.3), math.random(-0.1, 0.1)
 		end
 		task.delay(3, function()
 			for _, obj in pairs(cache) do
