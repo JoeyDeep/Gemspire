@@ -37,7 +37,7 @@ function DialogHooks:runHooks(dialogClass, hookData)
 end
 
 function DialogHooks:runFnc(fncName)
-	local data = engine:get("PlayerService").Data
+	local data = engine:get("PlayerService").data
 
 	-- dialog for selling all loot of a a player's inventory
 	if fncName == "sellAllLoot" then

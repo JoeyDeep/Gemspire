@@ -540,7 +540,7 @@ function Pickaxe:equip()
 	self.animations.Equip:Play()
 	-- self.animations.Equip:AdjustSpeed(1.5)
 
-	engine:get("RefiningKit"):start(engine:get("PlayerService").Data.container)
+	engine:get("RefiningKit"):start(engine:get("PlayerService").data.container)
 end
 
 function Pickaxe:unequip()

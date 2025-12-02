@@ -121,7 +121,7 @@ end
 
 -- request to start refining process (from: "E to Sift" -like action)
 function RefiningKit:requestRefine()
-	local sifterStatus = engine:get("PlayerService").Data.container
+	local sifterStatus = engine:get("PlayerService").data.container
 	local pickaxeToolClass = engine:get("Pickaxe").activeClass
 	local character = Players.LocalPlayer.Character
 
@@ -304,7 +304,7 @@ function RefiningKit:updateTip(inputType: "Gamepad" | "MouseKeyboard" | "Touch")
 	end
 
 	local InputData = engine:get("InputData")
-	local containerStatus = engine:get("PlayerService").Data.container
+	local containerStatus = engine:get("PlayerService").data.container
 
 	local tipUI =
 		Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("UI"):WaitForChild("Kit"):WaitForChild("Tip")
@@ -382,7 +382,7 @@ function RefiningKit:update(data)
 
 	local character = Players.LocalPlayer.Character
 	if character then
-		local kitData = engine:get("Kits")[engine:get("PlayerService").Data.equipped.kit]
+		local kitData = engine:get("Kits")[engine:get("PlayerService").data.equipped.kit]
 		local equippedContainer = kitData.container
 		local containerModel = character:FindFirstChild(equippedContainer)
 		if containerModel then
