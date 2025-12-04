@@ -49,7 +49,7 @@ function PlayerDialogService:handlePlayerResponse(player,event,data)
 	dialogEntry[data.option.id]= workspace:GetServerTimeNow()
 
 	playerData.dialog_history[data.npc] = dialogEntry
-	engine.events.Dialog:FireClient(player, "historyUpdated", playerData.dialog_history);
+	engine.events.PlayerData:FireClient(player, "setClientData", playerData);
 	
 end
 

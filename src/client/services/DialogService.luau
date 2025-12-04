@@ -27,14 +27,6 @@ local engine
 function DialogService.init(engineModule)
 	engine = engineModule
 
-	engine.events.Dialog.OnClientEvent:Connect(function(event,data)
-		print("client event")
-		print(event)
-		if event=="historyUpdated" then 
-			DialogService:onHistoryUpdated(data)
-		end
-	end)
-
 end
 
 function DialogService.new(npc)
@@ -62,74 +54,45 @@ function DialogService:start()
 	local DialogData = engine:get("DialogData")
 	local npcDialog = DialogData[self.npc]
 
-	-- find entry dialog
 	if npcDialog.entry then
 		self:npcSpeak(npcDialog.entry)
-	elseif npcDialog.entry_decide then
-		for _, entry in ipairs(npcDialog.entry_decide) do
-			if entry.type == "flag" then
-				local GameData = engine:get("GameData")
-				if GameData.flags[entry.name] then
-					-- found matching entry
-					if entry.next then
-						self:beginConversation(entry.next)
-						return
-					end
-				end
-			end
-		end
 	end
 end
 
-function DialogService:onHistoryUpdated(data)
-	print("updating history")
-	local playerData = engine:get("PlayerService").Data
-	playerData.dialog_history = data;
-end
-
--- run through logic to begin conversation at a certain node (see DialogData.luau)
 function DialogService:npcSpeak(node)
 	local DialogData = engine:get("DialogData")
 	local npcDialog = DialogData[self.npc]
-	local conversations = npcDialog.conversations
+	local nodes = npcDialog.nodes
+	local option_sets = npcDialog.option_sets
+
+	local selectedNode = nodes[node]
+	self.activeNode = node
 
 	if self.ended then
+		-- check in case player walks away mid execution
 		return
 	end
 
-	local selectedNode = conversations[node]
-	local text = selectedNode.text or selectedNode.choice or selectedNode.fncText
-	self.activeNode = node
-
-	if selectedNode.fncText then
-		local DialogHooks = engine:get("DialogHooks")
-		text = DialogHooks:runFnc(selectedNode.fncText)
-	end
-
 	if selectedNode.pre then
+		-- run something before displaying text
 		engine:get("DialogHooks"):runHooks(self, selectedNode.pre)
 	end
 
-	if typeof(text) == "table" then
-		text = text[math.random(1, #text)]
-	end
-
-	text = self:parseText(text)
-	local NPCHandler = engine:get("NPCHandler")
-	NPCHandler:get(self.npc):displayDialog(text, selectedNode.next ~= nil or selectedNode.choice ~= nil)
+	self:handleNodeText(selectedNode)
 
 	if selectedNode.post then
+		-- do something after displaying text
 		engine:get("DialogHooks"):runHooks(self, selectedNode.post)
 	end
 
-	if selectedNode.choice then
-		self:displayChoices(selectedNode.options)
+	if selectedNode.options and option_sets[selectedNode.options] then
+		-- display the options if we have them
+		self:displayChoices(option_sets[selectedNode.options])
+	else
+		-- if we don't have options we handle the next node
+		self:handleNodeNext(selectedNode)
 	end
 
-	if not self.ended and selectedNode.next and not selectedNode.choice then
-		task.wait(2) -- wait a bit before continuing
-		self:npcSpeak(selectedNode.next)
-	end
 end
 
 function DialogService:displayChoices(options)
@@ -160,7 +123,7 @@ function DialogService:displayChoices(options)
 		end
 	end
 
-	local playerData = engine:get("PlayerService").Data
+	local playerData = engine:get("PlayerService").data
 	
 	local historyWithNpc = playerData.dialog_history[self.npc]
 	print(historyWithNpc)
@@ -299,20 +262,96 @@ function DialogService:walkAway()
 	self:endDialog()
 end
 
-function DialogService:checkRequirements(require)
-	-- local PlayerService = engine:get("PlayerService")
-	-- local PlayerData = PlayerService.data
+function DialogService:handleNodeText(nodeObject)
+	local text = nil
 
-	-- if require.level_min and PlayerData.level < require.level_min then
-	-- 	return false
-	-- end
-	-- if require.level_max and PlayerData.level > require.level_max then
-	-- 	return false
-	-- end
+	if nodeObject.fncText then
+		-- in this case our text is the result of a function
+		local DialogHooks = engine:get("DialogHooks")
+		text = DialogHooks:runFnc(nodeObject.fncText)
+	elseif nodeObject.text then
+		-- text can either be a table (we select one line randomly) or just a line of text
+		if typeof(nodeObject.text) == "table" then
+			text = nodeObject.text[math.random(1, #nodeObject.text)]
+		else
+			text = nodeObject.text
+		end
+	end
 
-	-- blah blah blah @todo
+	if text then 
+		-- if there is text to display use the npc handler
+		text = self:parseText(text)
+		local NPCHandler = engine:get("NPCHandler")
+		NPCHandler:get(self.npc):displayDialog(text)
+	end
 
-	return true
+end
+
+
+function DialogService:handleNodeNext(nodeObject)
+	if self.ended then
+		-- check in case player walks away mid execution
+		return
+	end
+
+	-- only have a next if we have nextLogic or next
+	if nodeObject.nextLogic then
+		-- we have logic to determine what's next
+		local logicResult = self:evaluateLogicList(nodeObject.nextLogic)
+		self:npcSpeak(logicResult)
+	elseif nodeObject.next then
+		-- what's next is a set value
+		self:npcSpeak(nodeObject.next)
+	end
+
+end
+
+function DialogService:evaluateLogicList(logicList)
+	local result = nil
+
+	for _,logic in ipairs(logicList) do
+		
+		result = self:evaluateLogic(logic)
+		if result then
+			-- first logic to be true will give us a result and we exit the loop
+			break
+		end
+	end
+
+	return result
+end
+
+function DialogService:evaluateLogic(logic)
+	-- each logic has condition(s) and result
+	-- if we pass all conditions return result
+	-- if there are no conditions we return result
+	local result = nil
+	local conditionsPassed = true
+
+	for condition,value in pairs(logic.conditions) do
+		if condition == "spoken_to" then
+			conditionsPassed = conditionsPassed and self:checkSpokenTo(value)
+		elseif condition == "has_item" then
+			conditionsPassed = conditionsPassed and self:checkHasItem(value)
+		end
+	end
+
+	if conditionsPassed then 
+		result = logic.result
+	end
+
+	return result
+end
+
+function DialogService:checkSpokenTo(text)
+	local playerData = engine:get("PlayerService").Data
+	
+	local historyWithNpc = playerData.dialog_history[self.npc]
+	return historyWithNpc ~= nil
+end
+
+function DialogService:checkHasItem(text)
+	return false
 end
 
 function DialogService:parseText(text)

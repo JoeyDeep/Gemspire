@@ -61,7 +61,7 @@
 	[ ] <luminiteAmount> -> player's current luminite
 ]]
 
-return {
+local example = {
 	TestSpeaker = {
 		entry = "hello",
 
@@ -189,6 +189,133 @@ return {
 				},
 			},
 
+
+			sell_all_result = {
+				fncText = "sellAllLoot",
+				next = "repeat_menu",
+				post = { { type = "delay", duration = 3 } },
+			},
+			sell_result = {
+				fncText = "sellThis",
+				next = "repeat_menu",
+				post = { { type = "delay", duration = 3 } },
+			},
+			appraise_result = {
+				fncText = "appraiseThis",
+				next = "repeat_menu",
+				post = { { type = "delay", duration = 3 } },
+			},
+
+		
+			exit = {
+				text = 'Safe travels, <font color="rgb(255, 231, 94)"><playerName></font>. May your path be clear and your gems plentiful.',
+				post = { { type = "close" } },
+			},
+		},
+	},
+}
+
+return {
+	TestSpeaker = {
+		entry = "hello",
+
+		nodes = {
+			hello = {
+				text = {
+					`Yo hello there <font color="rgb(255, 231, 94)"><playerName></font>! Welcome to the world of Gemspire.`,
+					`Ah yo, a fresh face! Gemspire's luck be with you, <font color="rgb(255, 231, 94)"><playerName></font>.`,
+				},
+				next = "menu",
+			},
+
+			menu = {
+				text = "What would you like to know?",
+				options = "menu_options"
+			},
+
+			about_world = {
+				text = "Gemspire is stitched together by rifts and veins of power. Seek shrines, avoid the cracks—they stare back.",
+				post = {
+					{ type = "giveItem", id = "LorePage01", amount = 1 },
+				},
+				next = "menu",
+			},
+
+			about_leveling = {
+				text = "Train with the Sifters' Guild. Strength comes from rhythm: gather, craft, repeat.",
+				post = {
+					{ type = "giveItem", id = "TrainingVoucher", amount = 1 },
+				},
+				next = "menu",
+			},
+
+			exit = {
+				text = 'Safe travels, <font color="rgb(255, 231, 94)"><playerName></font>. May your path be clear and your gems plentiful.',
+				post = { { type = "close" } },
+			},
+		},
+
+		option_sets = {
+			menu_options = {
+				{
+					id = "world",
+					optionText = "Tell me about Gemspire.",
+					next = "about_world",
+					post = { { type = "addCoins", amount = 1 } },
+				},
+				{
+					id = "help",
+					optionText = "How can I get stronger?",
+					next = "about_leveling",
+				},
+				{
+					id = "bye",
+					optionText = "Nothing for now.",
+					next = "exit",
+				},
+			}
+		}
+	},
+	TestMerchant = {
+
+		entry = "merchantStart",
+
+		nodes = {
+			merchantStart = {
+				nextLogic = {
+					-- evaluate in order. if we pass a condition take the result. 
+					-- if there is no condition take the result
+					-- a conditon can have more than one requirement
+					{
+						conditions = {
+							spoken_to = "TestMerchant"
+						},
+						result = "welcome_back"
+					},
+					{
+						-- like default
+						result = "menu"
+					},
+				}
+			},
+			welcome_back = {
+				text = "Welcome back.",
+				next = "menu",
+			},
+			menu = {
+				text = {
+					`Looking to sell some gems, <font color="rgb(255, 231, 94)"><playerName></font>?`,
+					`Got some shiny stones to sell, <font color="rgb(255, 231, 94)"><playerName></font>?`,
+				},
+				options = "menu_options",
+			},
+			repeat_menu = {
+				text = {
+					`What else can I do for you, <font color="rgb(255, 231, 94)"><playerName></font>?`,
+					`Anything more, <font color="rgb(255, 231, 94)"><playerName></font>?`
+				},
+				options = "menu_options",
+			},
 			sell_all_result = {
 				fncText = "sellAllLoot",
 				next = "repeat_menu",
@@ -210,5 +337,52 @@ return {
 				post = { { type = "close" } },
 			},
 		},
-	},
+
+		option_sets = {
+			menu_options = {
+				{
+					id = "sell_all",
+					optionText = "Sell all my loot",
+					bubbleText = "I'd like to sell all my gems.",
+					next = "sell_all_result",
+				},
+				{
+					id = "sell_this",
+					optionText = "Sell this item",
+					bubbleText = "I'd like to sell this item.",
+					next = "sell_result",
+				},
+				{
+					id = "appraise",
+					optionText = "How much is this worth?",
+					bubbleText = "I'd like to appraise this item.",
+					next = "appraise_result",
+				},
+				{
+					id = "imrich",
+					optionText = "I'm rich.",
+					bubbleText = "I'm so rich!",
+					next = "repeat_menu",
+					displayLogic = {
+						{
+							conditions = {
+								completed_quest = "become_rich"
+							},
+							result = true,
+						},
+						{
+							result = false,
+						}
+					}
+				},
+				{
+					id = "bye",
+					optionText = "Nothing for now.",
+					bubbleText = "That's all for now.",
+					next = "exit",
+				},
+			}
+		}
+
+	}
 }
