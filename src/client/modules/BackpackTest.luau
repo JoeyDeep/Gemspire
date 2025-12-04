@@ -15,6 +15,7 @@
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Input = require(ReplicatedStorage.Packages.Input)
+local TopBarPlus = require(ReplicatedStorage.Packages.topbarplus)
 
 local BackpackTest = {
 	setupTools = {},
@@ -28,6 +29,7 @@ function BackpackTest.init(engineModule)
 
 	local players = game:GetService("Players")
 	local StarterGui = game:GetService("StarterGui")
+	local InputData = engine:get("InputData")
 	-- local backpack = players.LocalPlayer.Backpack
 
 	players.LocalPlayer.CharacterAdded:Connect(function()
@@ -66,6 +68,115 @@ function BackpackTest.init(engineModule)
 					break
 				end
 			end
+			-- elseif key == InputData.Inputs.Backpack.MouseKeyboard.Input then
+			-- 	BackpackTest:toggleBackpackUI()
+		end
+	end)
+
+	local backpackTopBar = TopBarPlus.new()
+	backpackTopBar:setImage("rbxassetid://135273755533681")
+	backpackTopBar:setImageScale(1.1)
+	backpackTopBar:align("Left")
+	backpackTopBar:bindToggleKey(InputData.Inputs.Backpack.MouseKeyboard.Input)
+	backpackTopBar:setCaption("Backpack")
+	backpackTopBar.toggled:Connect(
+		function(a0: boolean, a1: "AutoDeselect" | "HideParentFeature" | "OneClick" | "Overflow" | "User")
+			BackpackTest:toggleBackpackUI()
+		end
+	)
+
+	-- sorting
+	local activeSort = "none"
+	task.spawn(function()
+		local backpackContents = engine.PlayerGui:WaitForChild("UI"):WaitForChild("Inventory"):WaitForChild("Backpack")
+		local sortOptions = engine.PlayerGui.UI.Inventory.BackpackBackground.Sorting
+
+		-- interjection to disable the "T to open backpack" tip for non-mousekeyboard users (put here simply for UI yielding above)
+		Input.PreferredInput.Observe(function(inputType: "Gamepad" | "MouseKeyboard" | "Touch")
+			engine.PlayerGui.UI.Inventory.OpenTip.Visible = inputType == "MouseKeyboard"
+		end)
+
+		local sortFunctions = {
+			["none"] = function()
+				for _, toolButton in pairs(backpackContents:GetChildren()) do
+					if toolButton:IsA("Frame") then
+						local toolInstance =
+							BackpackTest.setupTools[players.LocalPlayer.Backpack:FindFirstChild(toolButton.Name)]
+						if toolInstance then
+							toolButton.LayoutOrder = toolInstance.index
+							toolButton.Visible = true
+						end
+					end
+				end
+			end,
+			["value"] = function()
+				local toolInstances = {}
+				for _, toolButton in pairs(backpackContents:GetChildren()) do
+					if toolButton:IsA("Frame") then
+						local toolInstance =
+							BackpackTest.setupTools[players.LocalPlayer.Backpack:FindFirstChild(toolButton.Name)]
+						if toolInstance and toolInstance.lootKey then
+							local lootDef = engine:get("Loot")[toolInstance.lootKey]
+							local sellPrice = math.round(lootDef.value_per_kg * toolInstance.kg)
+							table.insert(toolInstances, { class = toolInstance, value = sellPrice })
+						else
+							toolButton.Visible = false
+						end
+					end
+				end
+				table.sort(toolInstances, function(a, b)
+					return a.value > b.value
+				end)
+				for index, toolData in pairs(toolInstances) do
+					local toolButton = backpackContents:FindFirstChild(toolData.class.toolObject.Name)
+					if toolButton then
+						toolButton.LayoutOrder = index
+						toolButton.Visible = true
+					end
+				end
+			end,
+			["weight"] = function()
+				local toolInstances = {}
+				for _, toolButton in pairs(backpackContents:GetChildren()) do
+					if toolButton:IsA("Frame") then
+						local toolInstance =
+							BackpackTest.setupTools[players.LocalPlayer.Backpack:FindFirstChild(toolButton.Name)]
+						if toolInstance and toolInstance.lootKey then
+							table.insert(toolInstances, { class = toolInstance, weight = toolInstance.kg })
+						else
+							toolButton.Visible = false
+						end
+					end
+				end
+				table.sort(toolInstances, function(a, b)
+					return a.weight > b.weight
+				end)
+				for index, toolData in pairs(toolInstances) do
+					local toolButton = backpackContents:FindFirstChild(toolData.class.toolObject.Name)
+					if toolButton then
+						toolButton.LayoutOrder = index
+						toolButton.Visible = true
+					end
+				end
+			end,
+			["type"] = function()
+				-- @TODO: implement type sorting
+			end,
+			["locked"] = function()
+				-- @TODO: implement locked sorting
+			end,
+		}
+
+		for _, sortOption in pairs(sortOptions:GetChildren()) do
+			if sortOption:IsA("ImageButton") then
+				sortOption.Activated:Connect(function()
+					if activeSort ~= sortOption.Name then
+						activeSort = sortOption.Name
+						engine.PlayerGui.UI.Inventory.BackpackBackground.ActiveSort.Text = `Sort: {activeSort}`
+						sortFunctions[sortOption:GetAttribute("SortMethod")]()
+					end
+				end)
+			end
 		end
 	end)
 
@@ -97,14 +208,21 @@ function BackpackTest.new(toolObject)
 	local Icons = engine:get("Icons")
 	local itemType = toolObject:GetAttribute("Type")
 
-	local toolbar = engine.PlayerGui.UI.Inventory.Toolbar
-	local newTool = toolbar.Template:Clone()
-	newTool.Name = toolObject.Name
-
 	local intendedIndex = 1
 	for _, _ in pairs(BackpackTest.setupTools) do
 		intendedIndex += 1
 	end
+
+	local toolbar = engine.PlayerGui.UI.Inventory.Toolbar
+	local backpack = engine.PlayerGui.UI.Inventory.Backpack
+	local newTool, parentContainer
+	if intendedIndex > 10 then
+		parentContainer = backpack
+	else
+		parentContainer = toolbar
+	end
+	newTool = parentContainer.Template:Clone()
+	newTool.Name = toolObject.Name
 
 	self.toolbarButton = newTool
 	self.index = intendedIndex
@@ -152,15 +270,22 @@ function BackpackTest.new(toolObject)
 	else
 		typeSetups.Default()
 	end
-	newTool.Index.Text = tostring(intendedIndex)
+	if parentContainer == toolbar then
+		newTool.Index.Text = (intendedIndex == 10 and "0") or tostring(intendedIndex)
+	else
+		newTool.Index.Text = ""
+	end
 	newTool.Visible = true
-	newTool.Parent = toolbar
+	newTool.Parent = parentContainer
 
 	BackpackTest.setupTools[toolObject] = true
 	self.ancestryChangedConnection = toolObject.AncestryChanged:Connect(function(_, parent)
 		if not parent then
 			self:destroy()
 		end
+	end)
+	self.clickEquip = newTool.Button.Activated:Connect(function()
+		self:equip()
 	end)
 
 	BackpackTest.setupTools[toolObject] = self
@@ -196,6 +321,21 @@ function BackpackTest:equip()
 	end
 
 	humanoid:EquipTool(self.toolObject)
+end
+
+function BackpackTest:toggleBackpackUI()
+	local QuickTween = engine:get("QuickTween")
+
+	local inventoryUI = engine.PlayerGui.UI.Inventory
+	local nowVisible = (inventoryUI.Backpack.Position.Y.Scale == 1.5)
+
+	if nowVisible then
+		QuickTween(inventoryUI.Backpack, 0.2, { Position = UDim2.fromScale(0.513, 0.655) })
+		QuickTween(inventoryUI.BackpackBackground, 0.2, { Position = UDim2.fromScale(0.5, 0.649) })
+	else
+		QuickTween(inventoryUI.Backpack, 0.2, { Position = UDim2.fromScale(0.513, 1.5) })
+		QuickTween(inventoryUI.BackpackBackground, 0.2, { Position = UDim2.fromScale(0.5, 1.5) })
+	end
 end
 
 function BackpackTest:destroy()
