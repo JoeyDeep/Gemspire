@@ -222,8 +222,8 @@ return {
 		nodes = {
 			hello = {
 				text = {
-					`Yo hello there <font color="rgb(255, 231, 94)"><playerName></font>! Welcome to the world of Gemspire.`,
-					`Ah yo, a fresh face! Gemspire's luck be with you, <font color="rgb(255, 231, 94)"><playerName></font>.`,
+					`Dello there <font color="rgb(255, 231, 94)"><playerName></font>! Welcome to the world of Gemspire.`,
+					`Ah, a fresh face! Gemspire's luck be with you, <font color="rgb(255, 231, 94)"><playerName></font>.`,
 				},
 				next = "menu",
 			},
@@ -246,6 +246,11 @@ return {
 				post = {
 					{ type = "giveItem", id = "TrainingVoucher", amount = 1 },
 				},
+				next = "menu",
+			},
+
+			merchant_answer = {
+				text = "The merchant can buy your stuff.",
 				next = "menu",
 			},
 
@@ -272,6 +277,23 @@ return {
 					id = "bye",
 					optionText = "Nothing for now.",
 					next = "exit",
+				},
+				{
+					id = "merchant",
+					optionText = "What do you think of the merchant?",
+					bubbleText = "Do you know the merchant?",
+					next = "merchant_answer",
+					displayLogic = {
+						{
+							conditions = {
+								spoken_to = "TestMerchant"
+							},
+							result = true,
+						},
+						{
+							result = false,
+						}
+					}
 				},
 			}
 		}

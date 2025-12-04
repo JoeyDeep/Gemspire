@@ -35,7 +35,7 @@ end
 
 function PlayerDialogService:handlePlayerResponse(player,event,data)
 	local PlayerService = engine:get("PlayerService")
-	local playerData = PlayerService:GetData(player)
+	local playerData = PlayerService:getData(player)
 
 	print(playerData)
 	print("------------")

@@ -105,8 +105,8 @@ function DialogService:displayChoices(options)
 
 	local optionsToDisplay = {}
 	for _, option in ipairs(options) do
-		if option.require then
-			if not self:checkRequirements(option.require) then
+		if option.displayLogic then
+			if not self:evaluateLogicList(option.displayLogic) then
 				continue
 			end
 		end
@@ -328,11 +328,15 @@ function DialogService:evaluateLogic(logic)
 	local result = nil
 	local conditionsPassed = true
 
-	for condition,value in pairs(logic.conditions) do
-		if condition == "spoken_to" then
-			conditionsPassed = conditionsPassed and self:checkSpokenTo(value)
-		elseif condition == "has_item" then
-			conditionsPassed = conditionsPassed and self:checkHasItem(value)
+	if logic.conditions then
+		for condition,value in pairs(logic.conditions) do
+			if condition == "spoken_to" then
+				conditionsPassed = conditionsPassed and self:checkSpokenTo(value)
+			elseif condition == "has_item" then
+				conditionsPassed = conditionsPassed and self:checkHasItem(value)
+			elseif condition == "completed_quest" then
+				conditionsPassed = conditionsPassed and self:checkCompletedQuest(value)
+			end
 		end
 	end
 
@@ -344,13 +348,17 @@ function DialogService:evaluateLogic(logic)
 end
 
 function DialogService:checkSpokenTo(text)
-	local playerData = engine:get("PlayerService").Data
+	local playerData = engine:get("PlayerService").data
 	
 	local historyWithNpc = playerData.dialog_history[self.npc]
 	return historyWithNpc ~= nil
 end
 
 function DialogService:checkHasItem(text)
+	return false
+end
+
+function DialogService:checkCompletedQuest(test)
 	return false
 end
 
