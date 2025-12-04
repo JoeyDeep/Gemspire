@@ -17,7 +17,7 @@ return {
 		Backpack = {
 			MouseKeyboard = {
 				Type = "KeyCode",
-				Input = Enum.KeyCode.G,
+				Input = Enum.KeyCode.T,
 			},
 
 			-- Mobile handled by UI button
