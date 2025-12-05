@@ -1,4 +1,4 @@
-return function(engine, playerData)
+return function(engine, fncResponse, playerData)
 	local lootToSell = playerData.inventory.loot
 	local totalEarned = 0
 	local itemsSold = 0

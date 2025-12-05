@@ -268,14 +268,14 @@ function DialogService:handleNodeText(nodeObject)
 	if nodeObject.fncText then
 		-- in this case our text is the result of a function
 		local DialogHooks = engine:get("DialogHooks")
-		text = DialogHooks:runFnc(nodeObject.fncText)
+		text = DialogHooks:runFnc(nodeObject.fncText,nodeObject.fncResponse)
 	elseif nodeObject.text then
 		-- text can either be a table (we select one line randomly) or just a line of text
-		if typeof(nodeObject.text) == "table" then
-			text = nodeObject.text[math.random(1, #nodeObject.text)]
-		else
-			text = nodeObject.text
-		end
+		text = nodeObject.text
+	end
+
+	if typeof(text) == "table" then
+		text = text[math.random(1, #text)]
 	end
 
 	if text then 

@@ -1,4 +1,4 @@
-return function(engine, playerData)
+return function(engine, fncResponse, playerData)
 	local lootData
 	for _, tool in pairs(playerData.inventory.loot) do
 		if engine.player.Character and engine.player.Character:FindFirstChild(tool.id) then
@@ -7,22 +7,29 @@ return function(engine, playerData)
 		end
 	end
 	if not lootData then
-		return {
-			`You need to hold up the item you want me to appraise.`,
-			`I can't appraise something I can't see! Hold it up for me.`,
-		}
+		return fncResponse.null
 	end
 	if not lootData.lootKey then
-		return {
-			`This isn't something I'm willing to buy.`,
-			`Quite a nice item, but I don't deal with these kinds of things.`,
-		}
+		return fncResponse.invalid
 	end
 	local lootDef = engine:get("Loot")[lootData.lootKey]
 	local sellPrice = math.round(lootDef.value_per_kg * lootData.kg)
 
-	return {
-		`That's a <font color="rgb(255, 255, 0)">{lootDef.name}</font>, looks to be about <font color="rgb(25, 255, 25)">{lootData.kg}kg</font>. I could give you <font color="rgb(25, 255, 25)">{sellPrice}</font> coins for it.`,
-		`A fine specimen of <font color="rgb(255, 255, 0)">{lootDef.name}</font> you have there. It's about <font color="rgb(25, 255, 25)">{lootData.kg}kg</font>, I could give you <font color="rgb(25, 255, 25)">{sellPrice}</font> coins for it.`,
-	}
+	local success = fncResponse.success
+
+	if typeof(success) == "table" then
+		for _,value in ipairs(success) do
+			value:gsub("($lootName)",lootDef.name)
+			value:gsub("($lootWeight)",lootDef.kg)
+			value:gsub("($sellPrice)",sellPrice)
+		end
+	else
+		success:gsub("($lootName)",lootDef.name)
+		success:gsub("($lootWeight)",lootDef.kg)
+		success:gsub("($sellPrice)",sellPrice)
+	end
+
+	
+
+	return success
 end

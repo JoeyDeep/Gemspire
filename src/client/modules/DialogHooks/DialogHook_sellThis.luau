@@ -1,4 +1,4 @@
-return function(engine, playerData)
+return function(engine, funcResponse, playerData)
 	local heldLoot
 	local lootData
 	for _, tool in pairs(playerData.inventory.loot) do
