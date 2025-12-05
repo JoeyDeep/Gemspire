@@ -18,15 +18,16 @@ return function(engine, fncResponse, playerData)
 	local success = fncResponse.success
 
 	if typeof(success) == "table" then
-		for _,value in ipairs(success) do
-			value:gsub("($lootName)",lootDef.name)
-			value:gsub("($lootWeight)",lootDef.kg)
-			value:gsub("($sellPrice)",sellPrice)
+		for index,value in ipairs(success) do
+			value = value:gsub("($lootName)",lootDef.name)
+			value = value:gsub("($lootWeight)",lootData.kg)
+			value = value:gsub("($sellPrice)",sellPrice)
+			success[index] = value
 		end
 	else
-		success:gsub("($lootName)",lootDef.name)
-		success:gsub("($lootWeight)",lootDef.kg)
-		success:gsub("($sellPrice)",sellPrice)
+		success = success:gsub("($lootName)",lootDef.name)
+		success = success:gsub("($lootWeight)",lootData.kg)
+		success = success:gsub("($sellPrice)",sellPrice)
 	end
 
 	
