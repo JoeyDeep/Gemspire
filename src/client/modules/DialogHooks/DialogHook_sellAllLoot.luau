@@ -16,15 +16,22 @@ return function(engine, fncResponse, playerData)
 	end
 
 	if totalEarned == 0 then
-		return {
-			`Looks like you don't have any loot to sell.`,
-			`Would you like to go out and find some more?`,
-			`Come back when you have something to sell.`,
-		}
+		return fncResponse.invalid
 	end
 	engine.events.Inventory:FireServer("sellLoot", "all")
-	return {
-		`You sold <font color="rgb(25, 255, 25)">{itemsSold}</font> items for a total of <font color="rgb(25, 255, 25)">{totalEarned}</font> coins.</font>`,
-		`I count <font color="rgb(25, 255, 25)">{itemsSold}</font> things, for <font color="rgb(25, 255, 25)">{totalEarned}</font> coins. Pleasure doing business with you!`,
-	}
+
+	local success = fncResponse.success
+
+	if typeof(success) == "table" then
+		for index,value in ipairs(success) do
+			value = value:gsub("($itemsSold)",itemsSold)
+			value = value:gsub("($totalEarned)",totalEarned)
+			success[index] = value
+		end
+	else
+		success = success:gsub("($itemsSold)",itemsSold)
+		success = success:gsub("($totalEarned)",totalEarned)
+	end
+
+	return success
 end

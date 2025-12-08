@@ -191,16 +191,13 @@ return {
 				post = { { type = "delay", duration = 3 } },
 				fncResponse = {
 					success = {
-						`That's a <font color="rgb(255, 255, 0)">($lootName)</font>, looks to be about <font color="rgb(25, 255, 25)">($lootWeight)kg</font>. I could give you <font color="rgb(25, 255, 25)">($sellPrice)</font> coins for it.`,
-						`A fine specimen of <font color="rgb(255, 255, 0)">($lootName)</font> you have there. It's about <font color="rgb(25, 255, 25)">($lootWeight)kg</font>, I could give you <font color="rgb(25, 255, 25)">($sellPrice)</font> coins for it.`,
+						`You sold <font color="rgb(25, 255, 25)">($itemsSold)</font> items for a total of <font color="rgb(25, 255, 25)">($totalEarned)</font> coins.</font>`,
+						`I count <font color="rgb(25, 255, 25)">($itemsSold)</font> things, for <font color="rgb(25, 255, 25)">($totalEarned)</font> coins. Pleasure doing business with you!`,
 					},
 					invalid = {
-						`This isn't something I'm willing to buy.`,
-						`Quite a nice item, but I don't deal with these kinds of things.`,
-					},
-					null = {
-						`You need to hold up the item you want me to appraise.`,
-						`I can't appraise something I can't see! Hold it up for me.`,
+						`Looks like you don't have any loot to sell.`,
+						`Would you like to go out and find some more?`,
+						`Come back when you have something to sell.`,
 					},
 				}
 			},
@@ -208,6 +205,24 @@ return {
 				fncText = "sellThis",
 				next = "repeat_menu",
 				post = { { type = "delay", duration = 3 } },
+				fncResponse = {
+					success = {
+						`Pleasure doing business with you! Here's <font color="rgb(25, 255, 25)">($sellPrice)</font> coins for your <font color="rgb(255, 255, 0)">($lootName)</font>.`,
+						`Beautiful <font color="rgb(255, 255, 0)">($lootName)</font> you got there! Here's <font color="rgb(25, 255, 25)">($sellPrice)</font> coins for it.`,
+					},
+					geode = {
+						`You'd be better off crackin' that sucker open instead.`,
+						`Don't you want to know what's inside? Go crack it open!`,
+					},
+					invalid = {
+						`Hmm, that one's locked. I can't buy locked items.`,
+						`You need to unlock it first before I can buy it.`,
+					},
+					null = {
+						`Looks like you forgot to hold something up for me to see.`,
+						`I need to <i>actually see it</i> to be able to give you coin for it.`,
+					},
+				}
 			},
 			appraise_result = {
 				fncText = "appraiseThis",
