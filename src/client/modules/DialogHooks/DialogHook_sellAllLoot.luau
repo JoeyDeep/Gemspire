@@ -9,7 +9,7 @@ return function(engine, playerData)
 		end
 		-- @todo: traits value multiplier
 		itemsSold += 1
-		if lootDef then
+		if lootDef and lootDef.name ~= "Geode" then
 			local sellPrice = lootDef.value_per_kg or 0
 			totalEarned += sellPrice * loot.kg
 		end

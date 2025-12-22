@@ -233,7 +233,7 @@ function InventoryService:sellLoot(player, parameters)
 	for index, loot in pairs(lootToSell) do
 		local lootDef = engine:get("Loot")[loot.name]
 		-- @todo: traits
-		if lootDef and not loot.locked then
+		if lootDef and not loot.locked and loot.name ~= "geode" then
 			local sellPrice = lootDef.value_per_kg or 0
 			totalEarned += sellPrice * loot.weight
 

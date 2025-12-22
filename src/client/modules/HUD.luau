@@ -27,7 +27,7 @@ end
 
 function HUD:draw()
 	local data = engine:get("PlayerService").data
-	local UI = engine.PlayerGUi:WaitForChild("UI"):WaitForChild("HUD")
+	local UI = engine.PlayerGui:WaitForChild("UI"):WaitForChild("HUD")
 
 	UI.Coins.Amount.Text = tostring(data.coins)
 	UI.Luminite.Amount.Text = tostring(data.luminite)
