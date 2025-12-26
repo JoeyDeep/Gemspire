@@ -1,4 +1,4 @@
-return function(engine, playerData)
+return function(engine, fncResponse, playerData)
 	local heldLoot
 	local lootData
 	for _, tool in pairs(playerData.inventory.loot) do
@@ -9,30 +9,32 @@ return function(engine, playerData)
 		end
 	end
 	if not heldLoot then
-		return {
-			`Looks like you forgot to hold something up for me to see.`,
-			`I need to <i>actually see it</i> to be able to give you coin for it.`,
-		}
+		return fncResponse.null
 	end
 	if lootData.locked then
-		return {
-			`Hmm, that one's locked. I can't buy locked items.`,
-			`You need to unlock it first before I can buy it.`,
-		}
+		return fncResponse.invalid
 	end
 	if lootData.lootKey == "geode" then
-		return {
-			`You'd be better off crackin' that sucker open instead.`,
-			`Don't you want to know what's inside? Go crack it open!`,
-		}
-	end
+		return fncResponse.geode
+	end 
+	
 	local lootDef = engine:get("Loot")[lootData.lootKey]
 	print(lootData, lootDef)
 	local sellPrice = math.round(lootDef.value_per_kg * lootData.kg)
 	engine.events.Inventory:FireServer("sellLoot", { heldLoot })
 
-	return {
-		`Pleasure doing business with you! Here's <font color="rgb(25, 255, 25)">{sellPrice}</font> coins for your <font color="rgb(255, 255, 0)">{lootDef.name}</font>.`,
-		`Beautiful <font color="rgb(255, 255, 0)">{lootDef.name}</font> you got there! Here's <font color="rgb(25, 255, 25)">{sellPrice}</font> coins for it.`,
-	}
+	local success = fncResponse.success
+
+	if typeof(success) == "table" then
+		for index,value in ipairs(success) do
+			value = value:gsub("($sellPrice)",sellPrice)
+			value = value:gsub("($lootName)",lootDef.name)
+			success[index] = value
+		end
+	else
+		success = success:gsub("($sellPrice)",sellPrice)
+		success = success:gsub("($lootName)",lootDef.name)
+	end
+
+	return success
 end
