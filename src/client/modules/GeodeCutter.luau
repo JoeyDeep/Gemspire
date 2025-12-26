@@ -1,3 +1,4 @@
+local StarterGui = game:GetService("StarterGui")
 local GeodeCutter = {}
 GeodeCutter.__index = GeodeCutter
 
@@ -42,11 +43,25 @@ end
 function GeodeCutter:crackSequence(geodeTool)
 	local crackingMethodModule = engine:get(`CrackSequence_{self.method}`)
 	local PromptService = engine:get("PromptService")
+	local SpeedManager = engine:get("SpeedManager")
+	local PlayerModule = require(engine.player.PlayerScripts:WaitForChild("PlayerModule"))
+	local Controls = PlayerModule:GetControls()
+
 	if crackingMethodModule then
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+		engine.PlayerGui.UI.Inventory.Visible = false
+		SpeedManager:setState("crackingGeode", "freeze")
+		Controls:Disable()
 		PromptService:disableAll()
+		engine.events.Inventory:FireServer("crackGeode", geodeTool.Name)
 		local completeCallback = crackingMethodModule:start(self.station, geodeTool)
 		completeCallback.Event:Once(function(result)
 			PromptService:reEnableAll()
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			engine.PlayerGui.UI.Inventory.Visible = true
+			SpeedManager:dropState("crackingGeode", "freeze")
+			Controls:Enable()
 			print(result)
 		end)
 	else

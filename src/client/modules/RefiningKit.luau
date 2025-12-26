@@ -163,6 +163,10 @@ function RefiningKit:startRefining()
 	local character = Players.LocalPlayer.Character
 	local camera = workspace.CurrentCamera
 
+	local PlayerModule = require(engine.player.PlayerScripts:WaitForChild("PlayerModule"))
+	local Controls = PlayerModule:GetControls()
+	Controls:Disable()
+
 	pickaxeClass.animations.Idle:Stop()
 	RefiningKit.refining = true
 	pickaxeClass.refining = true
@@ -193,8 +197,13 @@ function RefiningKit:stopRefining()
 		:andThen(function()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			
 			engine.PlayerGui.UI.Inventory.Visible = true
 			workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+
+			local PlayerModule = require(engine.player.PlayerScripts:WaitForChild("PlayerModule"))
+			local Controls = PlayerModule:GetControls()
+			Controls:Enable()
 		end)
 
 	task.wait(0.45)

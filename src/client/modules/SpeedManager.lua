@@ -22,6 +22,7 @@ local SpeedManager = {
 }
 
 local DEFAULT_SPEED = 16
+local DEFAULT_JUMP = 50
 
 function SpeedManager:affect(tag, value, noSet)
 	SpeedManager.affects[tag] = value
@@ -68,6 +69,7 @@ end
 
 function SpeedManager:getSpeed()
 	local speed = DEFAULT_SPEED
+	local jump = DEFAULT_JUMP
 
 	for _, value in ipairs(SpeedManager.affects) do
 		speed += value
@@ -77,20 +79,22 @@ function SpeedManager:getSpeed()
 		for state, _ in pairs(states) do
 			if state == "freeze" then
 				speed = 0
+				jump = 0
 			end
 		end
 	end
 
-	return speed
+	return speed, jump
 end
 
 function SpeedManager:setSpeed()
 	local character = Players.LocalPlayer.Character
 
 	if character and character:FindFirstChild("Humanoid") then
-		local speed = SpeedManager:getSpeed()
+		local speed, jump = SpeedManager:getSpeed()
 
 		character.Humanoid.WalkSpeed = speed
+		character.Humanoid.JumpPower = jump
 	else
 		warn("[SpeedManager]: No character/character.Humanoid found, set failed.")
 	end
