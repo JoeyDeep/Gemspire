@@ -32,16 +32,10 @@ function PromptService.init(engineModule)
 	CollectionService:GetInstanceAddedSignal("ProximityPrompt"):Connect(function(instance)
 		PromptService.new(instance)
 	end)
-	for _, instance in pairs(CollectionService:GetTagged("ProximityPrompt")) do
-		PromptService.new(instance)
-	end
-
-	task.spawn(function()
-		task.wait(5)
-		local newPrompt = PromptService.new()
-		newPrompt:set("Parent", workspace.Test)
-		task.wait(5)
-		newPrompt:set("ActionText", "Hey! This is a dynamically created prompt!")
+	task.defer(function()
+		for _, instance in pairs(CollectionService:GetTagged("ProximityPrompt")) do
+			PromptService.new(instance)
+		end
 	end)
 end
 
@@ -64,6 +58,11 @@ function PromptService:reEnableAll()
 end
 
 function PromptService.new(existingPrompt)
+	for _, existingPromptClass in pairs(PromptService.prompts) do
+		if existingPrompt == existingPromptClass.prompt then
+			return
+		end
+	end
 	local self = setmetatable({}, PromptService)
 
 	local quickTween = engine:get("QuickTween")

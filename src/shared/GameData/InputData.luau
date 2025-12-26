@@ -43,6 +43,13 @@ return {
 			},
 		},
 
+		Pipecutter = { -- spam input minigame
+			Gamepad = {
+				Type = "KeyCode",
+				Input = Enum.KeyCode.ButtonA,
+			}
+		},
+
 		Refine = {
 			MouseKeyboard = {
 				Type = "KeyCode",

@@ -1,0 +1,85 @@
+Date : 2025-12-19 10:02:48
+Directory : c:\Users\jrvor\Documents\NewProtoype
+Total : 41 files,  4412 codes, 257 comments, 783 blanks, all 5452 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Luau     |         40 |      4,383 |        257 |        780 |      5,420 |
+| JSON     |          1 |         29 |          0 |          3 |         32 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                             | files      | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                |         41 |      4,412 |        257 |        783 |      5,452 |
+| . (Files)                                                                                        |          1 |         29 |          0 |          3 |         32 |
+| src                                                                                              |         40 |      4,383 |        257 |        780 |      5,420 |
+| src\client                                                                                       |         19 |      2,386 |        127 |        475 |      2,988 |
+| src\client\Loader                                                                                |          2 |         74 |          5 |         15 |         94 |
+| src\client\modules                                                                               |         12 |      1,774 |         95 |        337 |      2,206 |
+| src\client\modules (Files)                                                                       |          7 |      1,171 |         61 |        245 |      1,477 |
+| src\client\modules\DialogHooks                                                                   |          4 |        131 |          3 |         16 |        150 |
+| src\client\modules\Tools                                                                         |          1 |        472 |         31 |         76 |        579 |
+| src\client\services                                                                              |          5 |        538 |         27 |        123 |        688 |
+| src\server                                                                                       |          6 |        972 |        123 |        175 |      1,270 |
+| src\server\Loader                                                                                |          2 |         72 |          5 |         15 |         92 |
+| src\server\modules                                                                               |          2 |        292 |         85 |         46 |        423 |
+| src\server\services                                                                              |          2 |        608 |         33 |        114 |        755 |
+| src\shared                                                                                       |         15 |      1,025 |          7 |        130 |      1,162 |
+| src\shared (Files)                                                                               |          1 |          3 |          0 |          0 |          3 |
+| src\shared\GameData                                                                              |         11 |        819 |          7 |         87 |        913 |
+| src\shared\GameData (Files)                                                                      |          8 |        436 |          7 |         48 |        491 |
+| src\shared\GameData\Items                                                                        |          3 |        383 |          0 |         39 |        422 |
+| src\shared\utils                                                                                 |          3 |        203 |          0 |         43 |        246 |
++--------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                                         | language | code       | comment    | blank      | total      |
++--------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\jrvor\Documents\NewProtoype\default.project.json                                        | JSON     |         29 |          0 |          3 |         32 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\Loader\Engine.luau                               | Luau     |         68 |          3 |         12 |         83 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\Loader\init.client.luau                          | Luau     |          6 |          2 |          3 |         11 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\BackpackTest.luau                        | Luau     |        298 |         10 |         40 |        348 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\DialogHooks\DialogHook_appraiseThis.luau | Luau     |         27 |          0 |          2 |         29 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\DialogHooks\DialogHook_sellAllLoot.luau  | Luau     |         28 |          1 |          2 |         31 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\DialogHooks\DialogHook_sellThis.luau     | Luau     |         36 |          0 |          2 |         38 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\DialogHooks\init.luau                    | Luau     |         40 |          2 |         10 |         52 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\HUD.luau                                 | Luau     |         79 |          5 |         17 |        101 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\NPCHandler.luau                          | Luau     |         66 |          5 |         21 |         92 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\RefiningKit.luau                         | Luau     |        363 |         16 |         80 |        459 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\SpeedManager.lua                         | Luau     |         77 |          4 |         19 |        100 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\Tools\Pickaxe.luau                       | Luau     |        472 |         31 |         76 |        579 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\Typewriter.luau                          | Luau     |        167 |         14 |         33 |        214 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\modules\UIEffects.luau                           | Luau     |        121 |          7 |         35 |        163 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\services\DialogService.luau                      | Luau     |        233 |         15 |         55 |        303 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\services\InventoryService.luau                   | Luau     |         84 |          3 |         18 |        105 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\services\NotificationService.luau                | Luau     |         70 |          1 |         17 |         88 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\services\PlayerService.luau                      | Luau     |         33 |          7 |         10 |         50 |
+| c:\Users\jrvor\Documents\NewProtoype\src\client\services\PromptService.luau                      | Luau     |        118 |          1 |         23 |        142 |
+| c:\Users\jrvor\Documents\NewProtoype\src\server\Loader\Engine.lua                                | Luau     |         66 |          3 |         12 |         81 |
+| c:\Users\jrvor\Documents\NewProtoype\src\server\Loader\init.server.luau                          | Luau     |          6 |          2 |          3 |         11 |
+| c:\Users\jrvor\Documents\NewProtoype\src\server\modules\LootRNG.luau                             | Luau     |        290 |         85 |         44 |        419 |
+| c:\Users\jrvor\Documents\NewProtoype\src\server\modules\LuckManager.luau                         | Luau     |          2 |          0 |          2 |          4 |
+| c:\Users\jrvor\Documents\NewProtoype\src\server\services\InventoryService.luau                   | Luau     |        504 |         26 |         86 |        616 |
+| c:\Users\jrvor\Documents\NewProtoype\src\server\services\PlayerService.luau                      | Luau     |        104 |          7 |         28 |        139 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\ClientSettings.lua                      | Luau     |         16 |          0 |          3 |         19 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\DefaultData.luau                        | Luau     |         26 |          0 |          5 |         31 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\DialogData.luau                         | Luau     |        195 |          1 |         19 |        215 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\Icons.lua                               | Luau     |          5 |          0 |          2 |          7 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\InputData.luau                          | Luau     |         63 |          2 |         12 |         77 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\Items\Kits.lua                          | Luau     |         28 |          0 |          6 |         34 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\Items\Loot.lua                          | Luau     |        340 |          0 |         31 |        371 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\Items\Pickaxes.lua                      | Luau     |         15 |          0 |          2 |         17 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\LootTraits.lua                          | Luau     |         87 |          0 |          5 |         92 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\MineZones.lua                           | Luau     |         17 |          4 |          1 |         22 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\GameData\Rarity.lua                              | Luau     |         27 |          0 |          1 |         28 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\Hello.luau                                       | Luau     |          3 |          0 |          0 |          3 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\utils\QuickTween.luau                            | Luau     |          9 |          0 |          4 |         13 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\utils\RefineReplicate.luau                       | Luau     |         53 |          0 |         12 |         65 |
+| c:\Users\jrvor\Documents\NewProtoype\src\shared\utils\Sound.luau                                 | Luau     |        141 |          0 |         27 |        168 |
+| Total                                                                                            |          |      4,412 |        257 |        783 |      5,452 |
++--------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

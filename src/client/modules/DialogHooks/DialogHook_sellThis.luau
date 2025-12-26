@@ -19,6 +19,7 @@ return function(engine, fncResponse, playerData)
 	end 
 	
 	local lootDef = engine:get("Loot")[lootData.lootKey]
+	print(lootData, lootDef)
 	local sellPrice = math.round(lootDef.value_per_kg * lootData.kg)
 	engine.events.Inventory:FireServer("sellLoot", { heldLoot })
 

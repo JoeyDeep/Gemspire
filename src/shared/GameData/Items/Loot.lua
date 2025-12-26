@@ -126,6 +126,20 @@ return {
 			cursed = 0.05,
 		},
 	},
+	crackedGeode = {
+		name = "Cracked Geode",
+		description = "A geode that has been cracked open, revealing its inner crystals.",
+		rarity = 1,
+		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		value_per_kg = 650,
+		kg_range = { min = 0.1, max = 1 },
+		traits = {
+			none = 0.58,
+			ancient = 0.37,
+			cursed = 0.05,
+		},
+	},
 	fossil = {
 		name = "Fossil",
 		description = "The remains or impression of a prehistoric organism preserved in petrified form.",

@@ -50,7 +50,7 @@ local function loadModule(module)
 	end
 end
 local function initModules()
-	for _, module in pairs(engine.modules) do
+	for name, module in pairs(engine.modules) do
 		if typeof(module) == "table" and module.init and not module.___loaded then
 			-- Call the init function if it exists
 			local start = tick()
@@ -59,7 +59,7 @@ local function initModules()
 			module.___loaded = true
 
 			if tick() - start > 0.1 then
-				warn(`[!!!] {module.Name} took {tick() - start} seconds to load`)
+				warn(`[!!!] {name} took {tick() - start} seconds to load`)
 			end
 		end
 	end

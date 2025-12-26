@@ -74,6 +74,8 @@ function InventoryService.init(engineModule)
 			InventoryService:finishRefining(player)
 		elseif topic == "sellLoot" then
 			InventoryService:sellLoot(player, data)
+		elseif topic == "crackGeode" then
+			InventoryService:crackGeode(player, data)
 		end
 	end)
 end
@@ -198,9 +200,27 @@ function InventoryService:drawHoldLoot(playerClass, lootData, id)
 
 	local handle = storage.Loot[lootData.lootKey]:Clone()
 	local tool = Instance.new("Tool")
-	handle.Name = "Handle"
-	handle.Size *= lootData.kg
-	handle.Anchored = false
+	if handle:IsA("Model") then
+		handle:ScaleTo(handle:GetScale() * lootData.kg)
+		handle.PrimaryPart.Name = "Handle"
+		for _, basePart in pairs(handle:GetDescendants()) do
+			if basePart ~= handle.PrimaryPart and basePart:IsA("BasePart") then
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = handle.PrimaryPart
+				weld.Part1 = basePart
+				weld.Parent = basePart
+			end
+			if basePart:IsA("BasePart") then
+				basePart.Anchored = false
+			end
+		end
+		handle.PrimaryPart.Parent = tool
+	else
+		handle.Name = "Handle"
+		handle.Size *= lootData.kg
+		handle.Anchored = false
+	end
+
 	handle.Parent = tool
 	tool:SetAttribute("Type", "HoldLoot")
 	tool:SetAttribute("LootKey", lootData.lootKey)
@@ -231,11 +251,12 @@ function InventoryService:sellLoot(player, parameters)
 	end
 
 	for index, loot in pairs(lootToSell) do
-		local lootDef = engine:get("Loot")[loot.name]
+		print(loot)
+		local lootDef = engine:get("Loot")[loot.name or loot.lootKey]
 		-- @todo: traits
-		if lootDef and not loot.locked then
+		if lootDef and not loot.locked and loot.name ~= "geode" then
 			local sellPrice = lootDef.value_per_kg or 0
-			totalEarned += sellPrice * loot.weight
+			totalEarned += sellPrice * (loot.weight or loot.kg)
 
 			table.remove(playerData.inventory.loot, table.find(playerData.inventory.loot, loot))
 			if player.Character and player.Character:FindFirstChild(loot.id) then
@@ -610,6 +631,38 @@ function InventoryService:unequipLoot(player, lootID)
 			player.Character[desiredLoot.name]:Destroy()
 		end
 	end
+end
+
+function InventoryService:crackGeode(player, geodeID)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+
+	local inventory = playerData.inventory
+	-- kg, trait, lootKey ....... id
+	local oldData
+	for index, data in pairs(inventory.loot) do
+		if data.id and data.id == geodeID then
+			if data.name == "geode" then
+				oldData = table.clone(data)
+				table.remove(inventory.loot, index)
+				if player.Character:FindFirstChild(geodeID) then
+					player.Character[geodeID]:Destroy()
+				elseif player.Backpack:FindFirstChild(geodeID) then
+					player.Backpack[geodeID]:Destroy()
+				end
+			end
+			break
+		end
+	end
+
+	table.insert(inventory.loot, {
+		lootKey = "crackedGeode",
+		trait = oldData.trait,
+		kg = oldData.weight,
+		id = geodeID,
+	})
+	PlayerService:get(player):updateClient({"inventory"})
+	InventoryService:drawHoldLoot(PlayerService:get(player), {kg = oldData.weight, trait = oldData.trait, lootKey = "crackedGeode"}, geodeID)
 end
 
 return InventoryService
