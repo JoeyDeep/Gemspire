@@ -39,11 +39,20 @@ end
 
 function PlayerService:processClientDataUpdate(data)
 	-- handle any special cases for data updates here
+	if data.quests then
+		engine:get("QuestService"):drawQuestList(data.quests)
+	end
 end
 
 function PlayerService:loaded()
 	PlayerService._loaded = true
-	-- engine:get("InventoryService").register(PlayerService.data)
+
+	-- handle anything that needs to yield for player data here
+	local data = PlayerService.data
+	
+	if data.quests then
+		engine:get("QuestService"):drawQuestList(data.quests)
+	end
 end
 
 return PlayerService

@@ -15,7 +15,10 @@ return {
 		equipment = {},
 	},
 
-	quests = {},
+	quests = {
+		completed = {},
+		active = {},
+	},
 	dialog_history = {},
 	container = {}, -- { now = 0, max = 0, quality = 0-100 }
 

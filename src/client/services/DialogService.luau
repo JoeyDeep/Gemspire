@@ -51,8 +51,7 @@ function DialogService.new(npc)
 end
 
 function DialogService:start()
-	local DialogData = engine:get("DialogData")
-	local npcDialog = DialogData[self.npc]
+	local npcDialog = engine:get("DialogManager"):get(self.npc)
 
 	if npcDialog.entry then
 		self:npcSpeak(npcDialog.entry)
@@ -60,8 +59,7 @@ function DialogService:start()
 end
 
 function DialogService:npcSpeak(node)
-	local DialogData = engine:get("DialogData")
-	local npcDialog = DialogData[self.npc]
+	local npcDialog = engine:get("DialogManager"):get(self.npc)
 	local nodes = npcDialog.nodes
 	local option_sets = npcDialog.option_sets
 
@@ -328,15 +326,22 @@ function DialogService:evaluateLogic(logic)
 	local result = nil
 	local conditionsPassed = true
 
+	local RequirementEvaluator = engine:get("RequirementEvaluator")
+	local playerData = engine:get("PlayerService").data
+
 	if logic.conditions then
 		for condition,value in pairs(logic.conditions) do
-			if condition == "spoken_to" then
-				conditionsPassed = conditionsPassed and self:checkSpokenTo(value)
-			elseif condition == "has_item" then
-				conditionsPassed = conditionsPassed and self:checkHasItem(value)
-			elseif condition == "completed_quest" then
-				conditionsPassed = conditionsPassed and self:checkCompletedQuest(value)
-			end
+			conditionsPassed = conditionsPassed and RequirementEvaluator:evaluate(condition, value, playerData)
+			-- if condition == "spoken_to" then
+			-- 	conditionsPassed = conditionsPassed and self:checkSpokenTo(value)
+			-- elseif condition == "has_item" then
+			-- 	conditionsPassed = conditionsPassed and self:checkHasItem(value)
+			-- elseif condition == "completed_quests" then
+			-- 	conditionsPassed = conditionsPassed and self:checkCompletedQuests(value)
+			-- elseif condition == "hasQuestAtNode" then
+			-- 	print('called here')
+			-- 	conditionsPassed = conditionsPassed and self:checkActiveQuests(value)
+			-- end
 		end
 	end
 
@@ -358,7 +363,24 @@ function DialogService:checkHasItem(text)
 	return false
 end
 
-function DialogService:checkCompletedQuest(test)
+function DialogService:checkCompletedQuests(test)
+	return false
+end
+
+function DialogService:checkActiveQuests(data)
+	local playerData = engine:get("PlayerService").data
+
+	local stringSplit = string.split(data, "/")
+	local inquiredQuest, inquiredNode = stringSplit[1], stringSplit[2]
+
+	for id, questData in ipairs(playerData.quests.active) do
+
+		local activeQuest = playerData.quests.active[id]
+		if activeQuest and id == inquiredQuest and activeQuest.currentNode == inquiredNode then
+			return true
+		end
+	end
+
 	return false
 end
 

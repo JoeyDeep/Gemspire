@@ -49,8 +49,17 @@ end
 -- called when a new player joins and their profile is fully server-loaded
 function PlayerService:newPlayerSetup()
 	self.localData.lastPickaxeStrike = 0
+	self.localData.quests = {}
 
 	engine.events.PlayerData:FireClient(self.player, "provideClientData", self:getClientData())
+end
+
+-- profile data is locked by the time this runs. used for cleanups.
+-- trying to access/change profile data here? whatever you are doing is wrong, rethink it.
+-- ^ the profile should be up-to-date ALWAYS, in case of abrupt server disconnects. you shouldn't be waiting till here.
+function PlayerService:processRelease()
+	print(`Releasing profile for player: {self.player.Name}`)
+	self = nil
 end
 
 -- package a player's profile data for client use purposes
@@ -72,6 +81,9 @@ function PlayerService.new(player)
 		profile:Reconcile() -- add any new data from DefaultData that is not in the profile
 		profile:ListenToRelease(function() -- kick player if profile is loaded elsewhere
 			player:Kick()
+			if self and self.processRelease then
+				self:processRelease()
+			end
 		end)
 
 		if player:IsDescendantOf(Players) == true then -- successfully loaded profile

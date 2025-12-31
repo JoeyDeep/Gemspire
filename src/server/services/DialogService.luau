@@ -40,6 +40,18 @@ function PlayerDialogService:handlePlayerResponse(player,event,data)
 	print(playerData)
 	print("------------")
 
+	local character = player.Character
+	local playerPos = character and character:GetPivot().Position
+	if data.npc and workspace.Entities.NPCs:FindFirstChild(data.npc) then
+		local npcPos = workspace.Entities.NPCs[data.npc]:GetPivot().Position
+
+		if playerPos and (playerPos - npcPos).Magnitude > 50 then
+			print("Player too far from NPC to record dialog")
+			return
+		end
+		engine:get("QuestService").events.speakToNPC:Fire(player, {npc = data.npc, option = data.option})
+	end
+
 	local dialogEntry = {}
 
 	if playerData.dialog_history[data.npc] then
