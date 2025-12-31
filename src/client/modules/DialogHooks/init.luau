@@ -32,6 +32,8 @@ function DialogHooks:runHooks(dialogClass, hookData)
 			dialogClass:endDialog()
 		elseif hook.type == "delay" then
 			task.wait(hook.duration or 1)
+		elseif hook.type == "giveQuest" then
+			engine.events.Quests:FireServer("giveQuest", hook.id)
 		end
 	end
 end

@@ -414,6 +414,7 @@ function InventoryService:equipRefiningKit(player)
 				playerData.statistics.found_loot[loot.lootKey].largest = loot.kg
 			end
 		end
+		engine:get("QuestService").events.collectLoot:Fire(player, { lootKey = loot.lootKey, kg = loot.kg, trait = loot.trait })
 	end
 
 	InventoryService:spawnLootInTray(trayModel, rewards)
