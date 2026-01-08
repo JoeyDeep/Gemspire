@@ -15,6 +15,13 @@ return {
 		equipment = {},
 	},
 
+	drill = {
+		type = "rusty",
+		spawnTime = nil,
+		position = nil,
+		-- drill location in world
+	},
+
 	quests = {},
 	dialog_history = {},
 	container = {}, -- { now = 0, max = 0, quality = 0-100 }

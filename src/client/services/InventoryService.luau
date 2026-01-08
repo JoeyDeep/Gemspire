@@ -91,8 +91,13 @@ function InventoryService:setupTool(toolObj)
 		return
 	end
 
-	if type == "Pickaxe" then
-		engine:get("Pickaxe").new(toolObj)
+	local toolTypes = {
+		Pickaxe = "Pickaxe",
+		Drill = "Drill",
+	}
+
+	if type == toolTypes[type] then
+		engine:get(toolTypes[type]).new(toolObj)
 	end
 end
 

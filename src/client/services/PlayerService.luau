@@ -7,9 +7,12 @@
 		N/A, this is a service module initialized by the engine
 
 ]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local PlayerService = {
 	data = {},
+	Loaded = Signal.new()
 }
 
 local engine
@@ -43,6 +46,7 @@ end
 
 function PlayerService:loaded()
 	PlayerService._loaded = true
+	PlayerService.Loaded:Fire(self)
 	-- engine:get("InventoryService").register(PlayerService.data)
 end
 

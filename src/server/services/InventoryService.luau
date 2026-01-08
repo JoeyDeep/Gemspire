@@ -125,6 +125,9 @@ function InventoryService.register(playerClass)
 
 	local storage = ReplicatedStorage.Storage
 
+	local drillTool = storage.Tools.Drills.Drill:Clone()
+	drillTool.Parent = player.Backpack
+
 	local equippedPickaxe = playerClass.profile.Data.equipped.pickaxe
 	local pickaxeTool = storage.Tools.Pickaxes[equippedPickaxe]:Clone()
 	pickaxeTool:SetAttribute("Type", "Pickaxe")
