@@ -191,7 +191,7 @@ function BackpackTest.init(engineModule)
 		warn("[BackpackTest] Failed to disable backpack UI:", err)
 		task.spawn(function()
 			while not success do
-				wait(1)
+				task.wait(1)
 				success, err = disableNativeBackpackUI()
 			end
 		end)
@@ -208,9 +208,12 @@ function BackpackTest.new(toolObject)
 	local Icons = engine:get("Icons")
 	local itemType = toolObject:GetAttribute("Type")
 
-	local intendedIndex = 1
-	for _, _ in pairs(BackpackTest.setupTools) do
-		intendedIndex += 1
+	local intendedIndex = toolObject:GetAttribute("BackpackIndex")
+	if typeof(intendedIndex) ~= "number" or intendedIndex <= 0 then
+		intendedIndex = 1
+		for _, _ in pairs(BackpackTest.setupTools) do
+			intendedIndex += 1
+		end
 	end
 
 	local toolbar = engine.PlayerGui.UI.Inventory.Toolbar
@@ -290,6 +293,10 @@ function BackpackTest.new(toolObject)
 
 	BackpackTest.setupTools[toolObject] = self
 	return self
+end
+
+function BackpackTest:getToolClass(toolObject)
+	return BackpackTest.setupTools[toolObject]
 end
 
 function BackpackTest:equip()

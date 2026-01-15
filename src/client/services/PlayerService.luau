@@ -49,10 +49,12 @@ function PlayerService:loaded()
 
 	-- handle anything that needs to yield for player data here
 	local data = PlayerService.data
-	
+
 	if data.quests then
 		engine:get("QuestService"):drawQuestList(data.quests)
 	end
+	engine:get("BuyItemsHandler"):setup() -- initialize buy items handler
+	engine:get("HUD"):draw() -- draw HUD with initial currency amounts
 end
 
 return PlayerService

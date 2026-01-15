@@ -5,6 +5,9 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(177, 177, 177),
 
+		material_type = "Mineral",
+		craft_luck = 0.005,
+
 		value_per_kg = 100,
 		kg_range = { min = 1, max = 3 },
 		traits = {
@@ -18,6 +21,9 @@ return {
 		description = "A common mineral with a crystalline structure.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228),
+
+		material_type = "Mineral",
+		craft_luck = 0.01,
 
 		value_per_kg = 150,
 		kg_range = { min = 0.1, max = 1 },
@@ -33,6 +39,9 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(184, 184, 184),
 
+		material_type = "Mineral",
+		craft_luck = 0.01,
+
 		value_per_kg = 200,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -47,6 +56,12 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(113, 113, 113),
 
+		material_type = "Metal",
+		craft_luck = 0.02,
+		craft_modifiers = {
+			strength = 0.05,
+		},
+
 		value_per_kg = 250,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -60,6 +75,9 @@ return {
 		description = "A group of silicate minerals used as abrasives and in jewelry.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.02,
 
 		value_per_kg = 300,
 		kg_range = { min = 0.1, max = 1 },
@@ -76,6 +94,9 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.025,
+
 		value_per_kg = 400,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -89,6 +110,9 @@ return {
 		description = "A yellow variety of quartz often used in jewelry.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.03,
 
 		value_per_kg = 450,
 		kg_range = { min = 0.1, max = 1 },
@@ -104,6 +128,9 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.035,
+
 		value_per_kg = 500,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -117,6 +144,9 @@ return {
 		description = "A rock containing a cavity lined with crystals or other mineral matter.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Mineral",
+		craft_luck = 0.02,
 
 		value_per_kg = 600,
 		kg_range = { min = 0.1, max = 1 },
@@ -132,6 +162,9 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Mineral",
+		craft_luck = 0.025,
+
 		value_per_kg = 650,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -145,6 +178,9 @@ return {
 		description = "The remains or impression of a prehistoric organism preserved in petrified form.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Mineral",
+		craft_luck = 0.03,
 
 		value_per_kg = 700,
 		kg_range = { min = 0.1, max = 1 },
@@ -161,6 +197,12 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.04,
+		craft_modifiers = {
+			speed = 0.1,
+		},
+
 		value_per_kg = 800,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -174,6 +216,12 @@ return {
 		description = "A precious gemstone, typically green, known for its rarity and beauty.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.05,
+		craft_modifiers = {
+			strength = 0.15,
+		},
 
 		value_per_kg = 900,
 		kg_range = { min = 0.1, max = 1 },
@@ -189,6 +237,12 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.06,
+		craft_modifiers = {
+			strength = 0.1,
+		},
+
 		value_per_kg = 1000,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -202,6 +256,9 @@ return {
 		description = "A solid fragment of a meteoroid that survives its passage through the atmosphere and lands on Earth.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Metal",
+		craft_luck = 0.05,
 
 		value_per_kg = 1200,
 		kg_range = { min = 0.1, max = 1 },
@@ -217,6 +274,9 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.06,
+
 		value_per_kg = 1500,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -231,6 +291,12 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Metal",
+		craft_luck = 0.07,
+		craft_modifiers = {
+			luck = 0.05,
+		},
+
 		value_per_kg = 1800,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -244,6 +310,12 @@ return {
 		description = "A precious gemstone known for its hardness and brilliance.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.08,
+		craft_modifiers = {
+			luck = 0.1,
+		},
 
 		value_per_kg = 2000,
 		kg_range = { min = 0.1, max = 1 },
@@ -260,6 +332,9 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.09,
+
 		value_per_kg = 2000,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -273,6 +348,12 @@ return {
 		description = "A type of chalcedony that is dark green with red spots.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.1,
+		craft_modifiers = {
+			strength = 0.12,
+		},
 
 		value_per_kg = 2500,
 		kg_range = { min = 0.1, max = 1 },
@@ -288,6 +369,12 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.11,
+		craft_modifiers = {
+			speed = 0.12,
+		},
+
 		value_per_kg = 3000,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -301,6 +388,12 @@ return {
 		description = "A cluster of crystals that refract light into a spectrum of colors.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.12,
+		craft_modifiers = {
+			luck = 0.12,
+		},
 
 		value_per_kg = 3500,
 		kg_range = { min = 0.1, max = 1 },
@@ -317,6 +410,12 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.14,
+		craft_modifiers = {
+			luck = 0.15,
+		},
+
 		value_per_kg = 5000,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -330,6 +429,12 @@ return {
 		description = "A legendary gemstone said to be the heart of a mountain, imbued with ancient power.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.16,
+		craft_modifiers = {
+			strength = 0.18,
+		},
 
 		value_per_kg = 10000,
 		kg_range = { min = 0.1, max = 1 },
@@ -345,6 +450,12 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.18,
+		craft_modifiers = {
+			speed = 0.15,
+		},
+
 		value_per_kg = 15000,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -359,6 +470,12 @@ return {
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
 
+		material_type = "Gem",
+		craft_luck = 0.2,
+		craft_modifiers = {
+			strength = 0.2,
+		},
+
 		value_per_kg = 20000,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
@@ -372,6 +489,12 @@ return {
 		description = "A legendary gemstone that once adorned the crown of a great king, symbolizing power and wealth.",
 		rarity = 1,
 		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.25,
+		craft_modifiers = {
+			luck = 0.2,
+		},
 
 		value_per_kg = 50000,
 		kg_range = { min = 0.1, max = 1 },

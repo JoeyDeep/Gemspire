@@ -14,6 +14,7 @@ NPCHandler.__index = NPCHandler
 local engine
 function NPCHandler.init(engineModule)
 	engine = engineModule
+	engine:await("PromptService")
 
 	for _, NPC in pairs(workspace.Entities.NPCs:GetChildren()) do
 		NPCHandler.new(NPC.Name)

@@ -5,6 +5,7 @@ GeodeCutter.__index = GeodeCutter
 local engine
 function GeodeCutter.init(engineModule)
 	engine = engineModule
+	engine:await("PromptService")
 	for _, cuttingStation in pairs(workspace.Entities.CrackingTables:GetChildren()) do
 		task.spawn(function()
 			GeodeCutter.new(cuttingStation)
