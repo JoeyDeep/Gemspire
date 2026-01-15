@@ -10,22 +10,22 @@ local Pipecutter = {
 }
 
 local Encouragers = {
-	[1.1] = {"Almost there!", "Just a little more!", "Last bit!", "0.6 More Newtons!"},
-	[2] = {"Big crack!", "SNAP!", "CRUNCH!", "Wowzers!", "Mythical Squeeze!"},
-	[3] = {"Such power!", "Fantastic!", "Geoderific!", "Crackmaster!"},
-	[4] = {"Crackamanjaro!","Crackasaurus Rex!", "Crackzilla!"},
-	[6] = {"Keep squeezin'!", "Crack that sucker!", "OH YEAH!", "Squeezaholic!"}
+	[1.1] = { "Almost there!", "Just a little more!", "Last bit!", "0.6 More Newtons!" },
+	[2] = { "Big crack!", "SNAP!", "CRUNCH!", "Wowzers!", "Mythical Squeeze!" },
+	[3] = { "Such power!", "Fantastic!", "Geoderific!", "Crackmaster!" },
+	[4] = { "Crackamanjaro!", "Crackasaurus Rex!", "Crackzilla!" },
+	[6] = { "Keep squeezin'!", "Crack that sucker!", "OH YEAH!", "Squeezaholic!" },
 }
 local EncourageColors = {
-	{Main = Color3.fromRGB(0, 197, 248), Stroke = Color3.fromRGB(119, 117, 202)},
-	{Main = Color3.fromRGB(225, 78, 255), Stroke = Color3.fromRGB(206, 59, 61)},
-	{Main = Color3.fromRGB(0, 248, 82), Stroke = Color3.fromRGB(106, 154, 37)},
-	{Main = Color3.fromRGB(255, 201, 0), Stroke = Color3.fromRGB(255, 140, 0)},
-	{Main = Color3.fromRGB(255, 111, 0), Stroke = Color3.fromRGB(255, 0, 0)},
-	{Main = Color3.fromRGB(0, 255, 191), Stroke = Color3.fromRGB(0, 112, 255)},
-	{Main = Color3.fromRGB(255, 0, 234), Stroke = Color3.fromRGB(139, 0, 255)},
-	{Main = Color3.fromRGB(255, 0, 111), Stroke = Color3.fromRGB(255, 0, 0)},
-	{Main = Color3.fromRGB(0, 255, 140), Stroke = Color3.fromRGB(0, 255, 201)},
+	{ Main = Color3.fromRGB(0, 197, 248), Stroke = Color3.fromRGB(119, 117, 202) },
+	{ Main = Color3.fromRGB(225, 78, 255), Stroke = Color3.fromRGB(206, 59, 61) },
+	{ Main = Color3.fromRGB(0, 248, 82), Stroke = Color3.fromRGB(106, 154, 37) },
+	{ Main = Color3.fromRGB(255, 201, 0), Stroke = Color3.fromRGB(255, 140, 0) },
+	{ Main = Color3.fromRGB(255, 111, 0), Stroke = Color3.fromRGB(255, 0, 0) },
+	{ Main = Color3.fromRGB(0, 255, 191), Stroke = Color3.fromRGB(0, 112, 255) },
+	{ Main = Color3.fromRGB(255, 0, 234), Stroke = Color3.fromRGB(139, 0, 255) },
+	{ Main = Color3.fromRGB(255, 0, 111), Stroke = Color3.fromRGB(255, 0, 0) },
+	{ Main = Color3.fromRGB(0, 255, 140), Stroke = Color3.fromRGB(0, 255, 201) },
 }
 
 local engine
@@ -81,7 +81,15 @@ function Pipecutter:start(station, geodeTool)
 		rightCFVal:GetPropertyChangedSignal("Value"):Connect(function()
 			right:PivotTo(rightCFVal.Value)
 		end)
-		QuickTween(cfValue, 0.3, { Value = pipecutter.GeodeOrigin.CFrame:ToWorldSpace(CFrame.new(-0.25, -2.5, -0.25) * CFrame.Angles(math.rad(-10), math.rad(20), 0)) })
+		QuickTween(
+			cfValue,
+			0.3,
+			{
+				Value = pipecutter.GeodeOrigin.CFrame:ToWorldSpace(
+					CFrame.new(-0.25, -2.5, -0.25) * CFrame.Angles(math.rad(-10), math.rad(20), 0)
+				),
+			}
+		)
 		QuickTween(camera, 0.15, { CFrame = station.CamPart.CFrame:ToWorldSpace(CFrame.new(0, 0, 0.25)) })
 		task.wait(0.3)
 
@@ -103,9 +111,12 @@ function Pipecutter:start(station, geodeTool)
 		rightCFVal.Value = rightStartPivot
 		particles.Parent = pipecutter.GeodeOrigin
 
-		local camShaker = Pipecutter.inputTrove:Add(CameraShaker.new(Enum.RenderPriority.Camera.Value, function(cameraCF)
-			camera.CFrame *= cameraCF
-		end), "Stop")
+		local camShaker = Pipecutter.inputTrove:Add(
+			CameraShaker.new(Enum.RenderPriority.Camera.Value, function(cameraCF)
+				camera.CFrame *= cameraCF
+			end),
+			"Stop"
+		)
 
 		local function lerp(a, b, t)
 			return a + (b - a) * t
@@ -140,7 +151,10 @@ function Pipecutter:start(station, geodeTool)
 					local color = EncourageColors[math.random(1, #EncourageColors)]
 					local TextLabel = UI.EncourageTemplate:Clone()
 					TextLabel.Text = message
-					TextLabel.Position = UDim2.fromOffset(x + (((math.random() > 0.5) and math.random(30, 100)) or math.random(-100, -30)), y)
+					TextLabel.Position = UDim2.fromOffset(
+						x + (((math.random() > 0.5) and math.random(30, 100)) or math.random(-100, -30)),
+						y
+					)
 					TextLabel.TextTransparency = 1
 					TextLabel.Rotation = (math.random() > 0.5 and 3) or -3
 					TextLabel.TextColor3 = color.Main
@@ -149,12 +163,16 @@ function Pipecutter:start(station, geodeTool)
 					TextLabel.Name = "EncourageText"
 					TextLabel.Visible = true
 					TextLabel.Parent = UI
-					QuickTween(TextLabel, 2.5, {Position = UDim2.fromOffset(x, y - 25), Rotation = TextLabel.Rotation * 1.25})
-					QuickTween(TextLabel, 0.5, {TextTransparency = 0})
-					QuickTween(TextLabel.UIStroke, 0.5, {Transparency = 0})
+					QuickTween(
+						TextLabel,
+						2.5,
+						{ Position = UDim2.fromOffset(x, y - 25), Rotation = TextLabel.Rotation * 1.25 }
+					)
+					QuickTween(TextLabel, 0.5, { TextTransparency = 0 })
+					QuickTween(TextLabel.UIStroke, 0.5, { Transparency = 0 })
 					task.delay(2, function()
-						QuickTween(TextLabel, 0.5, {TextTransparency = 1})
-						QuickTween(TextLabel.UIStroke, 0.5, {Transparency = 1})
+						QuickTween(TextLabel, 0.5, { TextTransparency = 1 })
+						QuickTween(TextLabel.UIStroke, 0.5, { Transparency = 1 })
 						task.delay(0.5, function()
 							TextLabel:Destroy()
 						end)
@@ -163,7 +181,11 @@ function Pipecutter:start(station, geodeTool)
 			end
 
 			if count / maxCount > 0.5 then
-				QuickTween(engine.PlayerGui.UI.Vignette, 0.2, {ImageTransparency = lerp(1, 0, (count - (maxCount * 0.5)) / (maxCount * 0.5))})
+				QuickTween(
+					engine.PlayerGui.UI.Vignette,
+					0.2,
+					{ ImageTransparency = lerp(1, 0, (count - (maxCount * 0.5)) / (maxCount * 0.5)) }
+				)
 				if count / maxCount > 0.675 and not camShakeStarted then
 					camShakeStarted = true
 					camShaker:Start()
@@ -183,7 +205,7 @@ function Pipecutter:start(station, geodeTool)
 					count = 0
 					QuickTween(leftCFVal, 0.75, { Value = leftStartPivot })
 					QuickTween(rightCFVal, 0.75, { Value = rightStartPivot })
-					QuickTween(engine.PlayerGui.UI.Vignette, 0.5, {ImageTransparency = 1})
+					QuickTween(engine.PlayerGui.UI.Vignette, 0.5, { ImageTransparency = 1 })
 					if camShakeStarted then
 						camShakeStarted = false
 						camShaker:Stop()
@@ -193,7 +215,7 @@ function Pipecutter:start(station, geodeTool)
 
 			lastInputTime = now
 		end
-        
+
 		local function setInput()
 			if activeInput == "Gamepad" then
 				UI.GamepadInput.Visible = true
@@ -201,7 +223,7 @@ function Pipecutter:start(station, geodeTool)
 				UI.GamepadInput.Visible = false
 			end
 		end
-      
+
 		local touchInput = Pipecutter.inputTrove:Add(Input.Touch.new(), "Destroy")
 		touchInput.TouchTap:Connect(function(touchPositions)
 			processInput(touchPositions[1].x, touchPositions[1].y)
@@ -214,13 +236,13 @@ function Pipecutter:start(station, geodeTool)
 		local gamepadInput = Pipecutter.inputTrove:Add(Input.Gamepad.new(), "Destroy")
 		gamepadInput.ButtonDown:Connect(function(button)
 			if button == InputData.Inputs.Pipecutter.Gamepad.Input then
-				QuickTween(UI.GamepadInput.Mover, 0.075, {Position = UDim2.fromScale(0.5, 0.5)})
+				QuickTween(UI.GamepadInput.Mover, 0.075, { Position = UDim2.fromScale(0.5, 0.5) })
 				processInput(0, 0)
 			end
 		end)
 		gamepadInput.ButtonUp:Connect(function(button)
 			if button == InputData.Inputs.Pipecutter.Gamepad.Input then
-				QuickTween(UI.GamepadInput.Mover, 0.075, {Position = UDim2.fromScale(0.5, 0.45)})
+				QuickTween(UI.GamepadInput.Mover, 0.075, { Position = UDim2.fromScale(0.5, 0.45) })
 			end
 		end)
 
@@ -246,6 +268,7 @@ function Pipecutter:cleanup()
 	engine.PlayerGui.UI.GeodeCutGame.GamepadInput.Visible = false
 	Pipecutter.transparencyCache = {}
 	Pipecutter.inputTrove:Destroy()
+	camera.CameraType = Enum.CameraType.Custom
 end
 
 return Pipecutter

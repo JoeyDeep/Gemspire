@@ -34,6 +34,43 @@ function engine:get(moduleName)
 	end
 end
 
+function engine:await(moduleName, timeout)
+	local module = engine.modules[moduleName]
+	if not module then
+		warn("Module '" .. moduleName .. "' not found in engine.")
+		return nil
+	end
+
+	if typeof(module) == "table" and module.init and not module.___loaded then
+		if not module.___initializing then
+			module.___initializing = true
+			local ok, err = pcall(function()
+				module.init(engine)
+			end)
+			module.___initializing = nil
+			if ok then
+				module.___loaded = true
+			else
+				warn("Failed to init module '" .. moduleName .. "': " .. tostring(err))
+				return nil
+			end
+		end
+	end
+
+	if typeof(module) == "table" and module.init and not module.___loaded then
+		local start = os.clock()
+		while not module.___loaded do
+			if timeout and os.clock() - start > timeout then
+				warn("Timed out waiting for module '" .. moduleName .. "'.")
+				return nil
+			end
+			task.wait()
+		end
+	end
+
+	return module
+end
+
 -- ordered first to last to be loaded
 local foldersToLoad = {
 	"modules",

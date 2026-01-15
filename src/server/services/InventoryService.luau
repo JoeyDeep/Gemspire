@@ -21,6 +21,74 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InventoryService = {}
 
 local engine
+
+function InventoryService:addLootEntry(player, lootKey, kg, trait, id)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+	if not playerData then
+		return nil
+	end
+	playerData.inventory = playerData.inventory or {}
+	playerData.inventory.loot = playerData.inventory.loot or {}
+	local entry = { lootKey = lootKey, kg = kg, trait = trait, id = id }
+	table.insert(playerData.inventory.loot, entry)
+
+	local foundLoot = playerData.statistics and playerData.statistics.found_loot
+	if foundLoot and lootKey then
+		if not foundLoot[lootKey] then
+			foundLoot[lootKey] = { count = 1, largest = kg }
+		else
+			foundLoot[lootKey].count += 1
+			if kg > foundLoot[lootKey].largest then
+				foundLoot[lootKey].largest = kg
+			end
+		end
+	end
+
+	engine:get("QuestService").events.collectLoot:Fire(player, { lootKey = lootKey, kg = kg, trait = trait })
+	return entry
+end
+
+function InventoryService:removeLootEntry(player, lootId, expectedLootKey)
+	if typeof(lootId) == "table" then
+		expectedLootKey = expectedLootKey or lootId.lootKey
+		lootId = lootId.id
+	end
+	if typeof(lootId) ~= "string" then
+		return nil
+	end
+
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+	if not playerData or not playerData.inventory or not playerData.inventory.loot then
+		return nil
+	end
+
+	local removed
+	for index, loot in pairs(playerData.inventory.loot) do
+		if loot.id == lootId then
+			if expectedLootKey and loot.lootKey ~= expectedLootKey then
+				return nil
+			end
+			removed = loot
+			table.remove(playerData.inventory.loot, index)
+			break
+		end
+	end
+
+	if not removed then
+		return nil
+	end
+
+	if player.Character and player.Character:FindFirstChild(lootId) then
+		player.Character[lootId]:Destroy()
+	elseif player.Backpack:FindFirstChild(lootId) then
+		player.Backpack[lootId]:Destroy()
+	end
+
+	return removed
+end
+
 function InventoryService.init(engineModule)
 	engine = engineModule
 
@@ -68,6 +136,10 @@ function InventoryService.init(engineModule)
 			InventoryService:unequipLoot(player, data)
 		elseif topic == "equipKit" then
 			InventoryService:equipRefiningKit(player)
+		elseif topic == "equipEquipment" then
+			InventoryService:equipEquipment(player, data)
+		elseif topic == "unequipEquipment" then
+			InventoryService:unequipEquipment(player, data)
 		elseif topic == "smashReplicate" then
 			InventoryService:smashReplicate(player, data)
 		elseif topic == "finishRefining" then
@@ -76,6 +148,10 @@ function InventoryService.init(engineModule)
 			InventoryService:sellLoot(player, data)
 		elseif topic == "crackGeode" then
 			InventoryService:crackGeode(player, data)
+		elseif topic == "buyItem" then
+			InventoryService:buyItem(player, data)
+		elseif topic == "craftItem" then
+			InventoryService:craftItem(player, data)
 		end
 	end)
 end
@@ -128,12 +204,36 @@ function InventoryService.register(playerClass)
 	local storage = ReplicatedStorage.Storage
 
 	local equippedPickaxe = playerClass.profile.Data.equipped.pickaxe
+	local pickaxeIndex = 1
+	local pickaxeList = playerClass.profile.Data.inventory.pickaxes
+	if typeof(pickaxeList) == "table" then
+		local foundIndex = table.find(pickaxeList, equippedPickaxe)
+		if foundIndex then
+			pickaxeIndex = foundIndex
+		end
+	end
 	local pickaxeTool = storage.Tools.Pickaxes[equippedPickaxe]:Clone()
 	pickaxeTool:SetAttribute("Type", "Pickaxe")
+	pickaxeTool:SetAttribute("BackpackIndex", pickaxeIndex)
 	pickaxeTool.Parent = player.Backpack
 
+	local persistentFolder = storage.Tools:FindFirstChild("Persistents")
+	local vaultTool = persistentFolder and persistentFolder:FindFirstChild("vault")
+	if vaultTool and vaultTool:IsA("Tool") then
+		local vaultClone = vaultTool:Clone()
+		vaultClone:SetAttribute("Type", "Vault")
+		local index = vaultClone:GetAttribute("BackpackIndex")
+		if typeof(index) ~= "number" or index <= 0 then
+			vaultClone:SetAttribute("BackpackIndex", 2)
+		end
+		vaultClone.CanBeDropped = false
+		vaultClone.Parent = player.Backpack
+	else
+		warn("[InventoryService] Vault tool missing or not a Tool.")
+	end
+
 	-- LOOT!
-	-- table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg, id = id })
+	-- InventoryService:addLootEntry(player, loot.lootKey, loot.kg, loot.trait, id)
 	for _, loot in pairs(playerClass.profile.Data.inventory.loot) do
 		InventoryService:drawHoldLoot(playerClass, loot, loot.id)
 	end
@@ -252,18 +352,13 @@ function InventoryService:sellLoot(player, parameters)
 
 	for index, loot in pairs(lootToSell) do
 		print(loot)
-		local lootDef = engine:get("Loot")[loot.name or loot.lootKey]
+		local lootDef = engine:get("Loot")[loot.lootKey]
 		-- @todo: traits
-		if lootDef and not loot.locked and loot.name ~= "geode" then
+		if lootDef and not loot.locked and loot.lootKey ~= "geode" then
 			local sellPrice = lootDef.value_per_kg or 0
-			totalEarned += sellPrice * (loot.weight or loot.kg)
+			totalEarned += sellPrice * loot.kg
 
-			table.remove(playerData.inventory.loot, table.find(playerData.inventory.loot, loot))
-			if player.Character and player.Character:FindFirstChild(loot.id) then
-				player.Character[loot.id]:Destroy()
-			elseif player.Backpack:FindFirstChild(loot.id) then
-				player.Backpack[loot.id]:Destroy()
-			end
+			InventoryService:removeLootEntry(player, loot.id)
 		else
 			table.remove(lootToSell, index) -- cannot sell locked or undefined loot
 		end
@@ -327,6 +422,363 @@ function InventoryService:spawnLootInTray(trayModel, rewards)
 		weld.Part0 = lootObj
 		weld.Parent = lootObj
 	end
+end
+
+--------------------
+-- crafting method --
+--------------------
+
+function InventoryService:craftItem(player, data)
+	if typeof(data) ~= "table" then
+		return
+	end
+
+	local formulaId = data.formulaId
+	local slots = data.slots
+	if typeof(formulaId) ~= "string" or typeof(slots) ~= "table" then
+		return
+	end
+
+	local CraftingFormulas = engine:get("CraftingFormulas")
+	local Loot = engine:get("Loot")
+	local LootTraits = engine:get("LootTraits")
+	local PlayerService = engine:get("PlayerService")
+
+	local formula = CraftingFormulas and CraftingFormulas[formulaId]
+	if not formula then
+		engine.events.Inventory:FireClient(player, "craftFailed", { message = "Invalid formula." })
+		return
+	end
+
+	local playerData = PlayerService:getData(player)
+	if not playerData then
+		return
+	end
+
+	local inventoryLoot = playerData.inventory.loot
+	local usedIds = {}
+	local selected = {}
+	local metalKey
+
+	for _, slotIndex in ipairs(formula.gridSlots) do
+		local lootId = slots[slotIndex] or slots[tostring(slotIndex)]
+		if not lootId then
+			engine.events.Inventory:FireClient(player, "craftFailed", { message = "Missing ingredients." })
+			return
+		end
+
+		if usedIds[lootId] then
+			engine.events.Inventory:FireClient(player, "craftFailed", { message = "Duplicate ingredients." })
+			return
+		end
+		usedIds[lootId] = true
+
+		local lootEntry
+		for _, entry in pairs(inventoryLoot) do
+			if entry.id == lootId then
+				lootEntry = entry
+				break
+			end
+		end
+		if not lootEntry then
+			engine.events.Inventory:FireClient(player, "craftFailed", { message = "Ingredient missing." })
+			return
+		end
+
+		local lootKey = lootEntry.lootKey
+		local lootDef = lootKey and Loot and Loot[lootKey]
+		if not lootDef or not lootDef.material_type then
+			engine.events.Inventory:FireClient(player, "craftFailed", { message = "Invalid ingredient." })
+			return
+		end
+
+		local req = formula.requirements[slotIndex]
+		if not req then
+			engine.events.Inventory:FireClient(player, "craftFailed", { message = "Invalid slot." })
+			return
+		end
+
+		local material = lootDef.material_type
+		local typeAllowed = false
+		for _, t in pairs(req.types) do
+			if t == material then
+				typeAllowed = true
+				break
+			end
+		end
+		if not typeAllowed then
+			engine.events.Inventory:FireClient(player, "craftFailed", { message = "Wrong ingredient type." })
+			return
+		end
+
+		if material == "Metal" and formula.lockMetal then
+			if not metalKey then
+				metalKey = lootKey
+			elseif metalKey ~= lootKey then
+				engine.events.Inventory:FireClient(player, "craftFailed", { message = "All metals must match." })
+				return
+			end
+		end
+
+		selected[slotIndex] = {
+			entry = lootEntry,
+			lootKey = lootKey,
+			material_type = material,
+		}
+	end
+
+	local stats = { strength = 0, speed = 0, luck = 0 }
+	for _, slotData in pairs(selected) do
+		local lootDef = Loot[slotData.lootKey]
+		if lootDef then
+			stats.luck += lootDef.craft_luck or 0
+			if lootDef.craft_modifiers then
+				for stat, value in pairs(lootDef.craft_modifiers) do
+					stats[stat] = (stats[stat] or 0) + value
+				end
+			end
+		end
+		local trait = slotData.entry.trait and LootTraits[slotData.entry.trait]
+		if trait then
+			stats.luck += trait.craft_luck or 0
+			if trait.craft_modifiers then
+				for stat, value in pairs(trait.craft_modifiers) do
+					stats[stat] = (stats[stat] or 0) + value
+				end
+			end
+		end
+	end
+
+	local components = {}
+	local baseValue = 0
+	local valueMultiplier = formula.value_multiplier or 1
+	for _, slotData in pairs(selected) do
+		local lootDef = Loot[slotData.lootKey]
+		local weight = slotData.entry.kg or 0
+		local value = 0
+		if lootDef then
+			value = (lootDef.value_per_kg or 0) * weight
+		end
+		local traitName = slotData.entry.trait
+		local trait = traitName and LootTraits[traitName]
+		if trait and trait.sell_multiplier then
+			value *= trait.sell_multiplier
+		end
+		baseValue += value
+		table.insert(components, {
+			lootKey = slotData.lootKey,
+			weight = weight,
+			trait = traitName,
+			material_type = slotData.material_type,
+			value = value,
+		})
+	end
+	local craftedValue = baseValue * valueMultiplier
+
+	local removedIds = {}
+	for lootId in pairs(usedIds) do
+		if InventoryService:removeLootEntry(player, lootId) then
+			table.insert(removedIds, lootId)
+		end
+	end
+
+	local ringId = HttpService:GenerateGUID(false)
+	local displayName = formula.output.displayName
+	if metalKey and Loot[metalKey] then
+		displayName = `{Loot[metalKey].name} {displayName}`
+	end
+
+	local ring = {
+		id = ringId,
+		name = formula.output.name,
+		displayName = displayName,
+		metal = metalKey,
+		stats = stats,
+		createdAt = os.time(),
+		components = components,
+		base_value = baseValue,
+		value_multiplier = valueMultiplier,
+		value = craftedValue,
+	}
+
+	for slotIndex, slotData in pairs(selected) do
+		if slotData.material_type == "Gem" then
+			ring.gem = slotData.lootKey
+			ring.gemTrait = slotData.entry.trait
+			ring.gemWeight = slotData.entry.kg or 0
+			ring.gemSlot = slotIndex
+			break
+		end
+	end
+
+	playerData.inventory.equipment = playerData.inventory.equipment or {}
+	table.insert(playerData.inventory.equipment, ring)
+
+	PlayerService:get(player):updateClient({ "inventory" })
+
+	engine.events.Inventory:FireClient(player, "craftComplete", {
+		result = ring,
+		removedIds = removedIds,
+	})
+	print("[Crafting] Player data snapshot:", playerData)
+end
+
+--------------------
+-- shop buy method --
+--------------------
+
+function InventoryService:buyItem(player, data)
+	if typeof(data) ~= "table" then
+		return
+	end
+
+	local itemType = data.itemType
+	local itemName = data.itemName
+	if not itemType or not itemName then
+		return
+	end
+
+	local typeKey = string.lower(itemType)
+	if typeKey ~= "pickaxe" and typeKey ~= "kit" then
+		engine.events.Inventory:FireClient(player, "buyFailed", { reason = "invalidItem" })
+		return
+	end
+
+	local items = typeKey == "pickaxe" and engine:get("Pickaxes") or engine:get("Kits")
+	local itemData = items[itemName]
+	if not itemData then
+		engine.events.Inventory:FireClient(player, "buyFailed", { reason = "invalidItem" })
+		return
+	end
+
+	local PlayerService = engine:get("PlayerService")
+	local playerClass = PlayerService:get(player)
+	local playerData = playerClass.profile.Data
+
+	if playerData.equipped[typeKey] == itemName then
+		engine.events.Inventory:FireClient(player, "buyFailed", { reason = "alreadyEquipped" })
+		return
+	end
+
+	local price = itemData.price or 0
+	if playerData.coins < price then
+		engine.events.Inventory:FireClient(player, "buyFailed", {
+			reason = "insufficientFunds",
+			price = price,
+			balance = playerData.coins,
+		})
+		return
+	end
+
+	local oldItemName = playerData.equipped[typeKey]
+	playerData.coins -= price
+
+	playerData.inventory.oldEquipment = playerData.inventory.oldEquipment or { pickaxe = {}, kit = {}, equipment = {} }
+	playerData.inventory.oldEquipment[typeKey] = playerData.inventory.oldEquipment[typeKey] or {}
+	if oldItemName then
+		table.insert(playerData.inventory.oldEquipment[typeKey], { name = oldItemName, replacedAt = os.time() })
+	end
+
+	local listKey = typeKey == "pickaxe" and "pickaxes" or typeKey == "kit" and "kit" or nil
+	if listKey then
+		playerData.inventory[listKey] = playerData.inventory[listKey] or {}
+		local list = playerData.inventory[listKey]
+		local replaced = false
+		for i, name in ipairs(list) do
+			if name == oldItemName then
+				list[i] = itemName
+				replaced = true
+				break
+			end
+		end
+		if not replaced then
+			table.insert(list, itemName)
+		end
+	end
+
+	playerData.equipped[typeKey] = itemName
+
+	if typeKey == "pickaxe" then
+		local oldTool
+		local wasEquipped = false
+		if oldItemName then
+			oldTool = player.Backpack:FindFirstChild(oldItemName)
+				or (player.Character and player.Character:FindFirstChild(oldItemName))
+		end
+		local oldIndex = oldTool and oldTool:GetAttribute("BackpackIndex")
+		if oldTool then
+			wasEquipped = oldTool.Parent == player.Character
+			if wasEquipped then
+				local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					humanoid:UnequipTools()
+				end
+			end
+			oldTool:Destroy()
+		end
+
+		if not oldIndex then
+			oldIndex = listKey and table.find(playerData.inventory[listKey], itemName) or 1
+		end
+
+		local pickaxeTool = ReplicatedStorage.Storage.Tools.Pickaxes[itemName]:Clone()
+		pickaxeTool:SetAttribute("Type", "Pickaxe")
+		pickaxeTool:SetAttribute("BackpackIndex", oldIndex)
+		pickaxeTool.Parent = player.Backpack
+
+		if wasEquipped then
+			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid:EquipTool(pickaxeTool)
+			end
+		end
+	elseif typeKey == "kit" then
+		local character = player.Character
+		local Kits = engine:get("Kits")
+		if character and Kits[oldItemName] then
+			local oldContainerName = Kits[oldItemName].container
+			local oldContainer = character:FindFirstChild(oldContainerName)
+			if oldContainer then
+				oldContainer:Destroy()
+			end
+		end
+
+		if character then
+			local kitData = Kits[itemName]
+			local containerModel = ReplicatedStorage.Storage.Tools.Containers[kitData.container]:Clone()
+			containerModel:PivotTo(character:GetPivot())
+			containerModel.Handle.Motor6D.Part0 = character.Torso
+			containerModel.Handle.Motor6D.C0 = kitData.containerPivotOffset
+			containerModel.Parent = character
+
+			local rubbleMotor = containerModel.Handle.RubbleMotor
+			local fillMotor = containerModel.Handle.FillMotor
+			local containerStatus = InventoryService:getContainerStatus(player)
+			local fillOffsets = kitData.containerFillOffsets
+			local progressCF = fillOffsets.Min:Lerp(fillOffsets.Max, containerStatus.now / containerStatus.max)
+			if containerStatus.now > 0 then
+				rubbleMotor.C0 = progressCF
+				fillMotor.C0 = progressCF:ToWorldSpace(fillOffsets.RubbleOffset)
+				containerModel.Rubble.Transparency = 0
+				containerModel.FillPlane.Transparency = 0
+			else
+				containerModel.Rubble.Transparency = 1
+				containerModel.FillPlane.Transparency = 1
+			end
+		end
+
+		engine.events.Inventory:FireClient(player, "kitUpdate", InventoryService:getContainerStatus(player))
+	end
+
+	playerClass:updateClient({ "equipped", "inventory", "coins", "container" })
+
+	engine.events.Inventory:FireClient(player, "buyComplete", {
+		itemType = itemType,
+		itemName = itemName,
+		oldItemName = oldItemName,
+		price = price,
+		newBalance = playerData.coins,
+	})
 end
 
 -----------------
@@ -403,18 +855,7 @@ function InventoryService:equipRefiningKit(player)
 		loot.kg = math.floor(loot.kg * 100) / 100 -- round to 2 decimal places
 		local id = HttpService:GenerateGUID(false)
 		keyToId[index] = id
-		table.insert(playerData.inventory.loot, { name = loot.lootKey, trait = loot.trait, weight = loot.kg, id = id })
-		if not playerData.statistics.found_loot[loot.lootKey] then
-			-- player found this loot for first time
-			playerData.statistics.found_loot[loot.lootKey] = { count = 1, largest = loot.kg }
-		else
-			playerData.statistics.found_loot[loot.lootKey].count += 1
-			if loot.kg > playerData.statistics.found_loot[loot.lootKey].largest then
-				-- player found their personal heaviest of this kind of loot
-				playerData.statistics.found_loot[loot.lootKey].largest = loot.kg
-			end
-		end
-		engine:get("QuestService").events.collectLoot:Fire(player, { lootKey = loot.lootKey, kg = loot.kg, trait = loot.trait })
+		InventoryService:addLootEntry(player, loot.lootKey, loot.kg, loot.trait, id)
 	end
 
 	InventoryService:spawnLootInTray(trayModel, rewards)
@@ -486,6 +927,110 @@ function InventoryService:smashReplicate(player, data)
 			})
 		end
 	end
+end
+
+-------------------------
+-- equipment methods ----
+-------------------------
+
+local function findEquipmentEntry(playerData, itemId)
+	local equipment = playerData.inventory and playerData.inventory.equipment or {}
+	for _, item in ipairs(equipment) do
+		if item.id == itemId then
+			return item
+		end
+	end
+	return nil
+end
+
+local function normalizeEquippedList(playerData)
+	local equipped = playerData.equipped and playerData.equipped.equipment or {}
+	local cleaned = {}
+	for _, id in ipairs(equipped) do
+		if findEquipmentEntry(playerData, id) then
+			table.insert(cleaned, id)
+		end
+	end
+	playerData.equipped = playerData.equipped or {}
+	playerData.equipped.equipment = cleaned
+	return cleaned
+end
+
+function InventoryService:equipEquipment(player, itemId)
+	if typeof(itemId) == "table" then
+		itemId = itemId.id or itemId.itemId
+	end
+	if typeof(itemId) ~= "string" then
+		return
+	end
+
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+	if not playerData then
+		return
+	end
+
+	local item = findEquipmentEntry(playerData, itemId)
+	if not item then
+		return
+	end
+
+	local equipped = normalizeEquippedList(playerData)
+	for _, id in ipairs(equipped) do
+		if id == itemId then
+			return
+		end
+	end
+
+	local countsByType = {}
+	for _, id in ipairs(equipped) do
+		local entry = findEquipmentEntry(playerData, id)
+		if entry and entry.name then
+			countsByType[entry.name] = (countsByType[entry.name] or 0) + 1
+		end
+	end
+
+	local CraftingFormulas = engine:get("CraftingFormulas")
+	local formula = CraftingFormulas and CraftingFormulas[item.name]
+	local maxEquipped = (formula and formula.max_equipped) or math.huge
+	if countsByType[item.name] and countsByType[item.name] >= maxEquipped then
+		return
+	end
+
+	table.insert(equipped, itemId)
+	playerData.equipped.equipment = equipped
+
+	PlayerService:get(player):updateClient({ "equipped" })
+
+	-- TODO: attach equipment visuals to the character here.
+end
+
+function InventoryService:unequipEquipment(player, itemId)
+	if typeof(itemId) == "table" then
+		itemId = itemId.id or itemId.itemId
+	end
+	if typeof(itemId) ~= "string" then
+		return
+	end
+
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+	if not playerData then
+		return
+	end
+
+	local equipped = normalizeEquippedList(playerData)
+	for index, id in ipairs(equipped) do
+		if id == itemId then
+			table.remove(equipped, index)
+			break
+		end
+	end
+	playerData.equipped.equipment = equipped
+
+	PlayerService:get(player):updateClient({ "equipped" })
+
+	-- TODO: remove equipment visuals from the character here.
 end
 
 ---------------------
@@ -601,8 +1146,8 @@ function InventoryService:equipLoot(player, lootID)
 	-- @todo: traits
 
 	if desiredLoot then
-		local lootModel = ReplicatedStorage.Storage.Loot[desiredLoot.name]:Clone()
-		lootModel.Size *= desiredLoot.weight
+		local lootModel = ReplicatedStorage.Storage.Loot[desiredLoot.lootKey]:Clone()
+		lootModel.Size *= desiredLoot.kg
 		local weld = Instance.new("Weld")
 		weld.Parent = lootModel
 		weld.Part0 = lootModel
@@ -636,34 +1181,17 @@ end
 
 function InventoryService:crackGeode(player, geodeID)
 	local PlayerService = engine:get("PlayerService")
-	local playerData = PlayerService:getData(player)
 
-	local inventory = playerData.inventory
-	-- kg, trait, lootKey ....... id
-	local oldData
-	for index, data in pairs(inventory.loot) do
-		if data.id and data.id == geodeID then
-			if data.name == "geode" then
-				oldData = table.clone(data)
-				table.remove(inventory.loot, index)
-				if player.Character:FindFirstChild(geodeID) then
-					player.Character[geodeID]:Destroy()
-				elseif player.Backpack:FindFirstChild(geodeID) then
-					player.Backpack[geodeID]:Destroy()
-				end
-			end
-			break
-		end
+	local oldData = InventoryService:removeLootEntry(player, geodeID, "geode")
+	if not oldData then
+		return
 	end
 
-	table.insert(inventory.loot, {
-		lootKey = "crackedGeode",
-		trait = oldData.trait,
-		kg = oldData.weight,
-		id = geodeID,
-	})
-	PlayerService:get(player):updateClient({"inventory"})
-	InventoryService:drawHoldLoot(PlayerService:get(player), {kg = oldData.weight, trait = oldData.trait, lootKey = "crackedGeode"}, geodeID)
+	local crackedEntry = InventoryService:addLootEntry(player, "crackedGeode", oldData.kg, oldData.trait, geodeID)
+	PlayerService:get(player):updateClient({ "inventory" })
+	if crackedEntry then
+		InventoryService:drawHoldLoot(PlayerService:get(player), crackedEntry, geodeID)
+	end
 end
 
 return InventoryService

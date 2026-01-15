@@ -1,5 +1,5 @@
 return {
-	coins = 0,
+	coins = 1000,
 	luminite = 0,
 	xp = 0,
 
@@ -8,6 +8,11 @@ return {
 		kit = { "basic" },
 		loot = {},
 		equipment = {},
+		oldEquipment = {
+			pickaxe = {},
+			kit = {},
+			equipment = {},
+		},
 	},
 	equipped = {
 		pickaxe = "rusty",

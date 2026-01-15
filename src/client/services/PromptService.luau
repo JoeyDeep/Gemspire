@@ -20,6 +20,9 @@
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Input = require(ReplicatedStorage.Packages.Input)
 local PromptService = {
 	prompts = {},
 }
@@ -66,19 +69,66 @@ function PromptService.new(existingPrompt)
 	local self = setmetatable({}, PromptService)
 
 	local quickTween = engine:get("QuickTween")
+	local InputData = engine:get("InputData")
 
 	local prompt = existingPrompt or Instance.new("ProximityPrompt")
 	prompt.Style = Enum.ProximityPromptStyle.Custom
 
 	local ui = ReplicatedStorage:WaitForChild("Storage"):WaitForChild("ProximityPrompt"):Clone()
 	ui.Enabled = false
+	ui.Parent = engine.PlayerGui or Players.LocalPlayer:WaitForChild("PlayerGui")
+	local defaultButtonImage = ui.PromptFrame.InputFrame.Frame.ButtonImage.Image
 
-	if existingPrompt and existingPrompt.Parent then
-		ui.Parent = existingPrompt.Parent
-	end
 	if existingPrompt then
 		ui.PromptFrame.ActionText.Text = existingPrompt.ActionText
 		ui.PromptFrame.ObjectText.Text = existingPrompt.ObjectText
+	end
+
+	local function setInputDisplay(inputType)
+		local inputFrame = ui.PromptFrame.InputFrame.Frame
+		local keyToShow
+		local displayText
+		local usingGamepadIcon = false
+
+		if inputType == "Gamepad" then
+			keyToShow = prompt.GamepadKeyCode
+			local icon = InputData.Icons and InputData.Icons[keyToShow]
+			if icon then
+				inputFrame.ButtonImage.Image = icon
+				inputFrame.ButtonImage.Visible = true
+				inputFrame.ButtonText.Visible = false
+				usingGamepadIcon = true
+			else
+				displayText = UserInputService:GetStringForKeyCode(prompt.GamepadKeyCode)
+			end
+		elseif inputType == "Touch" then
+			displayText = "Tap"
+		else
+			keyToShow = prompt.KeyboardKeyCode
+			displayText = UserInputService:GetStringForKeyCode(prompt.KeyboardKeyCode)
+		end
+
+		if not usingGamepadIcon then
+			if (not displayText or displayText == "") and keyToShow and typeof(keyToShow) == "EnumItem" then
+				displayText = keyToShow.Name
+			end
+			if not displayText or displayText == "" then
+				displayText = "?"
+			end
+			inputFrame.ButtonText.Text = displayText
+			inputFrame.ButtonText.Visible = true
+			inputFrame.ButtonImage.Image = defaultButtonImage
+			inputFrame.ButtonImage.Visible = true
+		end
+	end
+
+	local function updateAdornee()
+		local parent = prompt.Parent
+		if parent and (parent:IsA("BasePart") or parent:IsA("Attachment") or parent:IsA("Model")) then
+			ui.Adornee = parent
+		else
+			ui.Adornee = nil
+		end
 	end
 
 	prompt:GetPropertyChangedSignal("ActionText"):Connect(function()
@@ -87,10 +137,14 @@ function PromptService.new(existingPrompt)
 	prompt:GetPropertyChangedSignal("ObjectText"):Connect(function()
 		ui.PromptFrame.ObjectText.Text = prompt.ObjectText
 	end)
+	prompt:GetPropertyChangedSignal("KeyboardKeyCode"):Connect(function()
+		setInputDisplay(Input.PreferredInput.Current)
+	end)
+	prompt:GetPropertyChangedSignal("GamepadKeyCode"):Connect(function()
+		setInputDisplay(Input.PreferredInput.Current)
+	end)
 	prompt:GetPropertyChangedSignal("Parent"):Connect(function()
-		if prompt.Parent then
-			ui.Parent = prompt.Parent
-		end
+		updateAdornee()
 	end)
 
 	prompt.PromptShown:Connect(function()
@@ -126,6 +180,37 @@ function PromptService.new(existingPrompt)
 
 	self.prompt = prompt
 	self.ui = ui
+
+	local clickButton = ui:FindFirstChildWhichIsA("TextButton", true)
+	if clickButton then
+		clickButton.InputBegan:Connect(function(input)
+			if
+				input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch
+			then
+				prompt:InputHoldBegin()
+			end
+		end)
+		clickButton.InputEnded:Connect(function(input)
+			if
+				input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch
+			then
+				prompt:InputHoldEnd()
+			end
+		end)
+	end
+
+	local preferredDisconnect = Input.PreferredInput.Observe(function(inputType)
+		setInputDisplay(inputType)
+	end)
+	updateAdornee()
+	prompt.Destroying:Connect(function()
+		if preferredDisconnect then
+			preferredDisconnect()
+			preferredDisconnect = nil
+		end
+	end)
 
 	table.insert(PromptService.prompts, self)
 	return self

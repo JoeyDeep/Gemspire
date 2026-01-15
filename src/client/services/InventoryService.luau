@@ -44,6 +44,47 @@ function InventoryService.init(engineModule)
 			end
 			playerData.coins += data.earned
 			engine:get("HUD"):addCurrency("coins", data.earned, true)
+		elseif topic == "craftComplete" then
+			local playerData = engine:get("PlayerService").data
+			if data.removedIds then
+				for _, lootId in pairs(data.removedIds) do
+					for i, loot in pairs(playerData.inventory.loot) do
+						if loot.id == lootId then
+							table.remove(playerData.inventory.loot, i)
+							break
+						end
+					end
+				end
+			end
+			if data.result then
+				playerData.inventory.equipment = playerData.inventory.equipment or {}
+				local exists = false
+				for _, item in ipairs(playerData.inventory.equipment) do
+					if item.id == data.result.id then
+						exists = true
+						break
+					end
+				end
+				if not exists then
+					table.insert(playerData.inventory.equipment, data.result)
+				end
+			end
+			engine:get("CraftingTable"):handleCraftResult(true, data)
+		elseif topic == "craftFailed" then
+			engine:get("CraftingTable"):handleCraftResult(false, data)
+		elseif topic == "buyComplete" then
+			local playerData = engine:get("PlayerService").data
+			if data.newBalance then
+				playerData.coins = data.newBalance
+			elseif data.price then
+				playerData.coins -= data.price
+			end
+			if data.price then
+				engine:get("HUD"):addCurrency("coins", -data.price, false)
+			end
+			engine:get("BuyItemsHandler"):handlePurchaseResult(true, data)
+		elseif topic == "buyFailed" then
+			engine:get("BuyItemsHandler"):handlePurchaseResult(false, data)
 		end
 	end)
 
@@ -93,6 +134,8 @@ function InventoryService:setupTool(toolObj)
 
 	if type == "Pickaxe" then
 		engine:get("Pickaxe").new(toolObj)
+	elseif type == "Vault" then
+		engine:get("Vault").new(toolObj)
 	end
 end
 

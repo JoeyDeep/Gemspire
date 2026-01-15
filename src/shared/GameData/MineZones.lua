@@ -24,4 +24,18 @@ return {
 			geode = 1,
 		},
 	},
+
+	MetalOnly = {
+		minDensity = 1,
+		loot = {
+			gold = 1,
+		},
+	},
+
+	GemOnly = {
+		minDensity = 1,
+		loot = {
+			amethyst = 1,
+		},
+	},
 }
