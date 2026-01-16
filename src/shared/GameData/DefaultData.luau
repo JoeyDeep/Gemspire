@@ -16,7 +16,7 @@ return {
 	},
 
 	drill = {
-		type = "rusty",
+		type = "steel",
 		spawnTime = nil,
 		position = nil,
 		-- drill location in world

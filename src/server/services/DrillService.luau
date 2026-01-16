@@ -4,6 +4,7 @@ local Input = require(ReplicatedStorage.Packages.Input)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local DrillService = {}
 local HttpService = game:GetService("HttpService")
+local DrillUtility = require(ReplicatedStorage.Shared.utils.DrillUtility)
 
 local engine
 function DrillService.init(engineModule)
@@ -16,12 +17,14 @@ function DrillService.init(engineModule)
 			DrillService:placeDrill(player, data)
 		elseif event == "collectLoot" then
 			DrillService:collectLoot(player)
+		elseif event == "pickupDrill" then
+			DrillService:pickupPlayerDrill(player)
 		end
 		
 	end)
 
 	PlayerService.PlayerRemoved:Connect(function(player)
-		DrillService:RemovePlayerDrill(player)
+		DrillService:removePlayerDrill(player)
 	end)
 end
 
@@ -31,6 +34,10 @@ function DrillService:collectLoot(player)
 	local playerData = PlayerService:getData(player)
 
 	local lootYield = DrillService:calculateTotalYield(player)
+
+	if  not DrillService:checkPlayerWithinMinimumDistanceOfDrill(player) then
+		return
+	end
 
 
 	local lootArray = DrillService:evaluateDrillRng(lootYield,playerData.drill)
@@ -49,7 +56,7 @@ function DrillService:collectLoot(player)
 
 	PlayerService:get(player):updateClient({"inventory","drill"})
 
-	engine.events.Drill:FireClient(player,"lootCollected")
+	engine.events.Drill:FireClient(player,"lootCollected",lootArray)
 
 
 end
@@ -57,16 +64,18 @@ end
 function DrillService:placeDrill(player, data)
 	-- client is checking about drill placement. server needs to check this
 	local PlayerService = engine:get("PlayerService")
+	local DrillUtility = engine:get("DrillUtility")
 	local playerData = PlayerService:getData(player)
 	local character = player.Character
 	local tool = character:FindFirstChildOfClass("Tool")
 	local storage = ReplicatedStorage.Storage
+	
 
 
-	local targetPivot = DrillService:getDrillTargetPivot(player)
+	local targetPivot = DrillUtility:getDrillTargetPivot(player)
 
 
-	if tool and DrillService:canPlayerPlaceDrill(player,targetPivot.Position) then
+	if tool and targetPivot and DrillService:canPlayerPlaceDrill(player,targetPivot.Position) then
 		-- Placed drills location in storage could be more clear
 		local placedDrill = storage.Tools.Drills.Placed.Drill:Clone()
 		placedDrill.Parent = game.Workspace.Entities.Drills
@@ -79,15 +88,32 @@ function DrillService:placeDrill(player, data)
 		playerData.drill.spawnTime = os.time()
 		playerData.drill.position = targetPivot.Position
 
-		-- add an owner attribute to drill
-
 		PlayerService:get(player):updateClient({"drill"})
-
+	else
+		print("player cannot place drill")
 	end
 end
 
-function DrillService:RemovePlayerDrill(player)
-	local drillToRemove = DrillService:findPlayerDrill(player)
+
+function DrillService:pickupPlayerDrill(player)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+
+	playerData.drill.spawnTime = nil
+	playerData.drill.position = nil
+	PlayerService:get(player):updateClient({"drill"})
+
+	DrillService:removePlayerDrill(player)
+
+	engine.events.Drill:FireClient(player,"drillPickedUp")
+
+	
+end
+
+function DrillService:removePlayerDrill(player)
+	local DrillUtility = engine:get("DrillUtility")
+
+	local drillToRemove = DrillUtility:findPlayerDrill(player)
 
 	if drillToRemove then
 		drillToRemove:Destroy()
@@ -117,8 +143,18 @@ function DrillService:canPlayerPlaceDrill(player,targetPosition)
 	local result = false
 	local MineZones = engine:get("MineZones")
 	local character = player.Character
+	local Drills = engine:get("Drills")
+	local DrillUtility = engine:get("DrillUtility")
 
-	if DrillService:getMineZoneFromPosition(targetPosition) then
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+	local drillDensity = Drills[playerData.drill.type].density
+
+	
+
+	local mineZone = DrillUtility:getMineZoneFromPosition(targetPosition)
+
+	if mineZone and drillDensity >= mineZone.minDensity and not DrillService:playerHasActiveDrill(player) then
 		result = true
 	end
 
@@ -126,11 +162,11 @@ function DrillService:canPlayerPlaceDrill(player,targetPosition)
 end
 
 function DrillService:evaluateDrillRng(totalLoot,drill)
-
+	local DrillUtility = engine:get("DrillUtility")
 
 	local lootDefinitions = engine:get("Loot")
 	local drillDefinitions = engine:get("Drills")
-	local mineZone = DrillService:getMineZoneFromPosition(drill.position)
+	local mineZone = DrillUtility:getMineZoneFromPosition(drill.position)
 
 
 	local rngEvaluator = engine:get("RngEvaluator").new(mineZone.loot, lootDefinitions)
@@ -163,62 +199,26 @@ function DrillService:evaluateDrillRng(totalLoot,drill)
 end
 
 
-function DrillService:getDrillTargetPivot(player)
-
-	local character = player.Character
-	local playerRoot = character:WaitForChild("HumanoidRootPart")
-
-	-- make a raycast including terrain
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { workspace.Terrain }
-	local cast = workspace:Raycast(character:GetPivot().Position + playerRoot.CFrame.LookVector * 2 + Vector3.new(0,1,0), Vector3.new(0, -20, 0), params)
 
 
-	return CFrame.new(cast.Position + playerRoot.CFrame.LookVector * 2 )
+function DrillService:checkPlayerWithinMinimumDistanceOfDrill(player)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
 
+	print("distance")
+	print(player:DistanceFromCharacter(playerData.drill.position))
+
+
+	return player:DistanceFromCharacter(playerData.drill.position) <= 20
 end
 
-function DrillService:getMineZoneFromPosition(position)
-	local result = nil
 
-	local MineZones = engine:get("MineZones")
+function DrillService:playerHasActiveDrill(player)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
 
-	-- make a raycast including only MineZones
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { workspace.Entities.MineZones }
-	local cast = workspace:Raycast(position, Vector3.new(0, -20, 0), params)
-
-	if cast and cast.Instance:IsDescendantOf(workspace.Entities.MineZones) then
-		result = MineZones[cast.Instance.Parent.Name]
-	end
-
-	return result
-
+	return playerData.drill.spawnTime or playerData.drill.position
 end
 
-function DrillService:findPlayerDrill(player)
-	local result = nil
-
-	local allDrills = game.Workspace.Entities.Drills:GetChildren()
-
-	for index, drill in ipairs(allDrills) do
-		if DrillService:checkDrillBelongsToPlayer(player,drill) then
-			result = drill;
-			break;
-		end
-	end
-
-	return result
-end
-
-function DrillService:checkDrillBelongsToPlayer(player,drillObject)
-
-	local owner = drillObject:getAttribute("Owner")
-
-	return player and (player.UserId == owner)
-
-end
 
 return DrillService

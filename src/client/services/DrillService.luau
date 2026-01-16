@@ -1,3 +1,6 @@
+local Players = game:GetService("Players")
+
+
 local DrillService = {
 	placedDrill = nil
 }
@@ -7,9 +10,11 @@ local engine
 function DrillService.init(engineModule)
 	engine = engineModule
 
-	engine.events.Drill.OnClientEvent:Connect(function(topic)
+	engine.events.Drill.OnClientEvent:Connect(function(topic,data)
 		if topic == "lootCollected" then
-			DrillService.placedDrill:startProgressBar()
+			DrillService.placedDrill:confirmCollectLoot(data)
+		elseif topic == "drillPickedUp" then
+			DrillService:equipPlayerDrill()
 		end
 	end)
 
@@ -41,6 +46,21 @@ function DrillService:checkDrillBelongsToLocalPlayer(drillObject)
 
 	return player.UserId == owner
 
+end
+
+
+function DrillService:equipPlayerDrill()
+
+	local character = Players.LocalPlayer.Character
+	character.Humanoid:UnequipTools()
+
+	task.delay(0.1,function()
+		local backpack = Players.LocalPlayer.Backpack
+		local drill = backpack:FindFirstChild("Drill")
+		character.Humanoid:EquipTool(drill)
+	end)
+	
+	
 end
 
 return DrillService
