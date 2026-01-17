@@ -148,6 +148,7 @@ function PromptService.new(existingPrompt)
 	end)
 
 	prompt.PromptShown:Connect(function()
+		print("show me!!!")
 		ui.Enabled = true
 	end)
 	prompt.PromptHidden:Connect(function()

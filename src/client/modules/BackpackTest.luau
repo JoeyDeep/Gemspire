@@ -241,6 +241,15 @@ function BackpackTest.new(toolObject)
 			mainTitle.Parent = newTool.Titles
 			newTool.Icon.Image = Icons.Pickaxe
 		end,
+		["Drill"] = function()
+			local drillData = engine:get("Drills")[toolObject.Name]
+			local mainTitle = newTool.Titles.Template:Clone()
+			mainTitle.Text = drillData.name
+			mainTitle.Name = "MainTitle"
+			mainTitle.Visible = true
+			mainTitle.Parent = newTool.Titles
+			newTool.Icon.Image = Icons.Drill
+		end,
 		["HoldLoot"] = function()
 			local itemData = engine:get("Loot")[toolObject:GetAttribute("LootKey")]
 			local mainTitle = newTool.Titles.Template:Clone()

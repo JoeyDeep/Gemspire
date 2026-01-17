@@ -7,9 +7,12 @@
 		N/A, this is a service module initialized by the engine
 
 ]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Signal = require(ReplicatedStorage.Packages.Signal)
 
 local PlayerService = {
 	data = {},
+	Loaded = Signal.new()
 }
 
 local engine
@@ -55,6 +58,8 @@ function PlayerService:loaded()
 	end
 	engine:get("BuyItemsHandler"):setup() -- initialize buy items handler
 	engine:get("HUD"):draw() -- draw HUD with initial currency amounts
+
+	PlayerService.Loaded:Fire(self)
 end
 
 return PlayerService

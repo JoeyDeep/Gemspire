@@ -20,6 +20,13 @@ return {
 		equipment = {},
 	},
 
+	drill = {
+		type = "steel",
+		spawnTime = nil,
+		position = nil,
+		-- drill location in world
+	},
+
 	quests = {
 		completed = {},
 		active = {},

@@ -136,6 +136,8 @@ function InventoryService:setupTool(toolObj)
 		engine:get("Pickaxe").new(toolObj)
 	elseif type == "Vault" then
 		engine:get("Vault").new(toolObj)
+	elseif type == "Drill" then
+		engine:get("Drill").new(toolObj)
 	end
 end
 

@@ -202,6 +202,13 @@ function InventoryService.register(playerClass)
 	end
 
 	local storage = ReplicatedStorage.Storage
+	
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+
+	local drillTool = storage.Tools.Drills.Drill:Clone()
+	drillTool.Name = playerData.drill.type
+	drillTool.Parent = player.Backpack
 
 	local equippedPickaxe = playerClass.profile.Data.equipped.pickaxe
 	local pickaxeIndex = 1
