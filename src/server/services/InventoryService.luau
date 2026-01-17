@@ -376,6 +376,7 @@ function InventoryService:getContainerStatus(player)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:getData(player)
 	local Kits = engine:get("Kits")
+	local ModifierManager = engine:get("ModifierManager")
 	local equippedKit = playerData.equipped.kit
 	local kitData = Kits[equippedKit].stats
 
@@ -390,7 +391,15 @@ function InventoryService:getContainerStatus(player)
 	-- quality determined by average scoop's mini game score
 	contentsQuality = (contentsQuality == 0 and 0) or (math.floor((contentsQuality / #scoopData) * 100) / 100) * 100
 
-	return { now = inContainerNow, max = kitData and kitData.capacity or 0, quality = contentsQuality }
+	local capacity = kitData and kitData.capacity or 0
+	if ModifierManager then
+		local modifiedCapacity = ModifierManager:getKitStat(player, "capacity", equippedKit)
+		if typeof(modifiedCapacity) == "number" then
+			capacity = modifiedCapacity
+		end
+	end
+
+	return { now = inContainerNow, max = capacity, quality = contentsQuality }
 end
 
 function InventoryService:spawnLootInTray(trayModel, rewards)
@@ -790,6 +799,8 @@ function InventoryService:equipRefiningKit(player)
 	local playerData = PlayerService:getData(player)
 	local Kits = engine:get("Kits")
 	local LootRNG = engine:get("LootRNG")
+	local ModifierManager = engine:get("ModifierManager")
+	local WorldEventService = engine:get("WorldEventService")
 
 	local character = player.Character
 	local equippedKit = playerData.equipped.kit
@@ -825,16 +836,46 @@ function InventoryService:equipRefiningKit(player)
 	end
 
 	-- determine findings
+	local kitStats = kitData.stats
+	if ModifierManager then
+		kitStats = ModifierManager:getKitStats(player, equippedKit) or kitData.stats
+	end
+	local kitForRng = kitData
+	if kitStats ~= kitData.stats then
+		kitForRng = table.clone(kitData)
+		kitForRng.stats = kitStats
+	end
+
+	local baseLuck = ModifierManager and ModifierManager:getBaseLuck(player) or 1
+	local zones = engine:get("MineZones")
+	if WorldEventService then
+		zones = WorldEventService:applyLootZones(zones)
+	end
+	local opts = {
+		rng = Random.new(), -- seed by player.UserId?
+		pickaxeLuck = ModifierManager
+				and function(pickaxeName, pickaxeDefs)
+					local def = pickaxeDefs and pickaxeDefs[pickaxeName]
+					return def and def.stats and def.stats.luck or 1
+				end
+			or nil,
+	}
+	if WorldEventService then
+		local eventOpts = WorldEventService:getLootRngOptions()
+		if eventOpts then
+			for key, value in pairs(eventOpts) do
+				opts[key] = value
+			end
+		end
+	end
 	local rewards = LootRNG.RollFromEntries({
 		entries = playerData.container,
-		kit = kitData,
+		kit = kitForRng,
 		pickaxes = engine:get("Pickaxes"),
-		zones = engine:get("MineZones"),
+		zones = zones,
 		lootDefs = engine:get("Loot"),
-		baseLuck = 1,
-		opts = {
-			rng = Random.new(), -- seed by player.UserId?
-		},
+		baseLuck = baseLuck,
+		opts = opts,
 	})
 
 	local containerStatus = InventoryService:getContainerStatus(player)
@@ -914,8 +955,16 @@ function InventoryService:smashReplicate(player, data)
 	local playerClass = PlayerService:get(player)
 	local playerData = playerClass.profile.Data
 	local kitData = engine:get("Kits")[playerData.equipped.kit]
+	local ModifierManager = engine:get("ModifierManager")
 
-	playerClass.localData.refineProgress -= kitData.stats.malletStrength
+	local malletStrength = kitData.stats.malletStrength
+	if ModifierManager then
+		local modifiedStrength = ModifierManager:getKitStat(player, "malletStrength", playerData.equipped.kit)
+		if typeof(modifiedStrength) == "number" then
+			malletStrength = modifiedStrength
+		end
+	end
+	playerClass.localData.refineProgress -= malletStrength
 
 	for _, plr in pairs(Players:GetPlayers()) do
 		if plr ~= player then
@@ -1041,10 +1090,18 @@ function InventoryService:strikePickaxe(player, score)
 	local playerData = PlayerService:getData(player)
 	local Pickaxes = engine:get("Pickaxes")
 	local MineZones = engine:get("MineZones")
+	local ModifierManager = engine:get("ModifierManager")
 
 	local equippedPickaxe = playerData.equipped.pickaxe
 	local pickaxeData = Pickaxes[equippedPickaxe].stats
 	local refiningKitStatus = InventoryService:getContainerStatus(player)
+	local pickaxeStrength = pickaxeData.strength
+	if ModifierManager then
+		local modifiedStrength = ModifierManager:getPickaxeStat(player, "strength", equippedPickaxe)
+		if typeof(modifiedStrength) == "number" then
+			pickaxeStrength = modifiedStrength
+		end
+	end
 
 	local character = player.Character
 	local params = RaycastParams.new()
@@ -1064,10 +1121,10 @@ function InventoryService:strikePickaxe(player, score)
 		and refiningKitStatus.now < refiningKitStatus.max
 		and zone
 		and MineZones[zone]
-		and MineZones[zone].minDensity <= pickaxeData.strength
+		and MineZones[zone].minDensity <= pickaxeStrength
 		and tick() - lastStrike > 0.25
 	then
-		local amount = math.min(pickaxeData.strength, refiningKitStatus.max - refiningKitStatus.now)
+		local amount = math.min(pickaxeStrength, refiningKitStatus.max - refiningKitStatus.now)
 		table.insert(playerData.container, {
 			pickaxe = equippedPickaxe,
 			amount = amount,

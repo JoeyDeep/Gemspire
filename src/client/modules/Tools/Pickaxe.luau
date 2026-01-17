@@ -70,6 +70,17 @@ function Pickaxe.new(toolObj)
 	return self
 end
 
+function Pickaxe:_getStat(stat)
+	local ModifierManager = engine:get("ModifierManager")
+	if ModifierManager then
+		local value = ModifierManager:getPickaxeStat(Players.LocalPlayer, stat, self.tool.Name)
+		if typeof(value) == "number" then
+			return value
+		end
+	end
+	return (self.stats and self.stats[stat]) or 0
+end
+
 function Pickaxe:_stopCoreAnims(fade)
 	fade = fade or 0
 	for _, name in ipairs(CORE_ANIMS) do
@@ -180,7 +191,8 @@ function Pickaxe:strike()
 	end
 
 	self.striking = true
-	self:_playOnly("Windup", 0.1, 1, self.stats.speed)
+	local speed = self:_getStat("speed")
+	self:_playOnly("Windup", 0.1, 1, speed)
 	engine:get("SpeedManager"):setState("Pickaxe", "freeze")
 
 	-- clear old conn
@@ -209,7 +221,7 @@ function Pickaxe:strike()
 				strikeUI.Container.Bar,
 				0,
 				{ Position = UDim2.fromScale(0.5, 0) },
-				TweenInfo.new(0.75 / self.stats.speed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
+				TweenInfo.new(0.75 / speed, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true)
 			)
 
 			resolve("ready") -- <<< resolve AFTER we've entered ReadyLoop/UI
@@ -318,10 +330,11 @@ function Pickaxe:requestStrike()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = { workspace.Entities.MineZones }
 	local cast = workspace:Raycast(character:GetPivot().Position, Vector3.new(0, -20, 0), params)
+	local density = self:_getStat("density")
 
 	if cast and cast.Instance:IsDescendantOf(workspace.Entities.MineZones) then
 		local mineZone = cast.Instance.Parent.Name
-		if MineZones[mineZone] and MineZones[mineZone].minDensity <= self.stats.density then
+		if MineZones[mineZone] and MineZones[mineZone].minDensity <= density then
 			self:strike()
 			return true
 		else

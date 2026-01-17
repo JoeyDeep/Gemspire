@@ -228,6 +228,7 @@ function RefiningKit:setupSmash()
 	local PlayerService = engine:get("PlayerService")
 	local Kits = engine:get("Kits")
 	local Sound = engine:get("Sound")
+	local ModifierManager = engine:get("ModifierManager")
 
 	local character = Players.LocalPlayer.Character
 	local equippedTray = Kits[PlayerService.data.equipped.kit].tray
@@ -247,6 +248,12 @@ function RefiningKit:setupSmash()
 		local traySize = trayModel:GetExtentsSize()
 		local middlePos = trayModel.Handle.Middle.WorldPosition
 		local malletStrength = Kits[PlayerService.data.equipped.kit].stats.malletStrength
+		if ModifierManager then
+			local modifiedStrength = ModifierManager:getKitStat(Players.LocalPlayer, "malletStrength")
+			if typeof(modifiedStrength) == "number" then
+				malletStrength = modifiedStrength
+			end
+		end
 
 		local chosenRubble = trayModel.RefineEntities.Rubble:GetChildren()[math.random(
 			1,

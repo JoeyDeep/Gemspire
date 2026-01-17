@@ -292,7 +292,7 @@ function LootRNG.RollOne(args, entry)
 
 		-- 2) Trait (luck-adjusted; normalize even if weird input)
 		local traits = def.traits or { none = 1 }
-		local traitWeights = adjustTraitFn(traits, effLuck, entry, context)
+		local traitWeights = adjustTraitFn(traits, effLuck, entry, context, lootKey, def)
 		local traitKey = weightedPick(traitWeights, rng) or "none"
 
 		-- 3) Weight (kg) (luck-adjusted bias)
@@ -414,5 +414,7 @@ function LootRNG.RollFromEntries(args)
 	end
 	return all
 end
+
+LootRNG.Defaults = Defaults
 
 return LootRNG

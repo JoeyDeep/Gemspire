@@ -259,7 +259,7 @@ function CraftingTable:_populateFormulas()
 	end
 
 	for _, child in pairs(self.formulaList:GetChildren()) do
-		if child:IsA("Frame") and child.Name == "Template" and child ~= self.formulaTemplate then
+		if child:IsA("Frame") and child ~= self.formulaTemplate then
 			child:Destroy()
 		end
 	end
