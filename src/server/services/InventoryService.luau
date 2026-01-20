@@ -206,9 +206,7 @@ function InventoryService.register(playerClass)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:getData(player)
 
-	local drillTool = storage.Tools.Drills.Drill:Clone()
-	drillTool.Name = playerData.drill.type
-	drillTool.Parent = player.Backpack
+	
 
 	local equippedPickaxe = playerClass.profile.Data.equipped.pickaxe
 	local pickaxeIndex = 1
@@ -238,6 +236,11 @@ function InventoryService.register(playerClass)
 	else
 		warn("[InventoryService] Vault tool missing or not a Tool.")
 	end
+
+	local drillTool = storage.Tools.Drills.Drill:Clone()
+	drillTool.Name = playerData.drill.type
+	drillTool:SetAttribute("BackpackIndex", 3)
+	drillTool.Parent = player.Backpack
 
 	-- LOOT!
 	-- InventoryService:addLootEntry(player, loot.lootKey, loot.kg, loot.trait, id)
