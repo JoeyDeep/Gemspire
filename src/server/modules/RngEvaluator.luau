@@ -25,7 +25,7 @@ function RngEvaluator:generateResultArray(numberOfResults)
 
 	for i = 1, numberOfResults do
 		local result = {}
-		result.key = self:weightedPick(self.rarityTable)
+		result.key = self:weightedPickWithMult(self.rarityTable)
 		self:evalAttachments(result)
 		table.insert(results, result)
 	end
@@ -39,6 +39,10 @@ function RngEvaluator:applyModifier(modifier)
 
 	if modifier.type == "mult" then 
 		self:applyMultModifier(modifier)
+	elseif modifier.type == "multScaledDown" then 
+		self:applyMultScaledDownModifier(modifier)
+	elseif modifier.type == "add" then 
+		self:applyAddModifier(modifier)
 	end
 
 end
@@ -50,13 +54,22 @@ function RngEvaluator:addAttachment(attachment)
 end
 
 -- PRIVATE ------------------------------------------------
-
+-- attachment includes
+-- {
+-- 	resultKey: name of key to put the computed value into
+-- 	eval: table that has information needed to evaluate attachment
+-- }
 function RngEvaluator:evalAttachments(rngResult)
 	for index, attachment in ipairs(self.attachments) do
 		rngResult[attachment.resultKey] = self:evaluateAttachment(rngResult,attachment.eval)
 	end
 end
 
+-- eval includes
+-- {
+-- 	type: what kind of attachment calculation this is,
+-- 	key: key referenced against the definition table for needed values
+-- }
 function RngEvaluator:evaluateAttachment(rngResult,eval)
 
 	local result = nil
@@ -81,10 +94,18 @@ function RngEvaluator:evaluateAttachment(rngResult,eval)
 end
 
 -- MODIFIERS
+function RngEvaluator:applyMultScaledDownModifier(modifier)
+	self.multiplyer = self.multiplyer + (modifier.value * modifier.scale)
+end
 
 function RngEvaluator:applyMultModifier(modifier)
 	self.multiplyer = self.multiplyer * modifier.value
 end
+
+function RngEvaluator:applyAddModifier(modifier)
+	self.multiplyer = self.multiplyer + modifier.value
+end
+
 
 -- ATTACHMENTS
 
@@ -96,7 +117,7 @@ function RngEvaluator:selectFromRarityTable(definition,eval)
 
 	local rarityTable = definition[eval.key]
 
-	return self:weightedPick(rarityTable)
+	return self:weightedPickWithMult(rarityTable)
 
 end
 
@@ -104,6 +125,7 @@ end
 -- {
 -- 	key: what key from the definition table contains the range
 -- 	precision: how many decimal places to include
+--  multiplyBy: end result is multiplied by this value (optional)
 -- }
 function RngEvaluator:rangeSelectWithLowBias(definition,eval)
 
@@ -116,11 +138,79 @@ function RngEvaluator:rangeSelectWithLowBias(definition,eval)
 		return 1
 	end
 
-	return self:lowValueBiasRangePick(range.min,range.max,precision)
+	local result =  self:lowValueBiasRangePick(range.min,range.max,precision)
+
+	if eval.multiplyBy then 
+		result = result * eval.multiplyBy
+	end
+
+	return result
 
 end
 
+-- LUCK APPLIER
+
+function RngEvaluator:applyMultiplier(weightedTable)
+
+    if self.multiplyer == 1 then 
+		return weightedTable 
+	end
+
+    local newWeights = {}
+    local sum = 0
+
+    -- Simple version: boost everything below average weight
+    local total = 0
+    for _, w in weightedTable do total += w end
+    local avg = total / self:sumWeights(weightedTable)  -- or use # if array
+
+    for item, weight in weightedTable do
+        if weight < avg then
+            -- rarer items get boosted more aggressively
+            newWeights[item] = weight * (1 + (self.multiplyer - 1) * (1 - weight / avg))
+        else
+            newWeights[item] = weight / self.multiplyer ^ 0.5   -- common items slightly penalized
+        end
+        sum += newWeights[item]
+    end
+
+    -- normalize back to original total (optional but nice)
+    if sum > 0 then
+        for item in newWeights do
+            newWeights[item] *= total / sum
+        end
+    end
+
+    return newWeights
+end
+
+function RngEvaluator:withLuckBoost(weights)
+    local boosted = {}
+    local sum = 0
+
+    for item, w in weights do
+        if w <= 0 then continue end
+        local rarity = 1 / w
+        boosted[item] = rarity ^ self.multiplyer
+        sum += boosted[item]
+    end
+
+    for item in boosted do
+        boosted[item] = (boosted[item] / sum) * self:sumWeights(weights) -- keep original scale
+    end
+
+    return boosted
+end
+
 -- PICK FUNCTIONS
+
+function RngEvaluator:weightedPickWithMult(rarityTable)
+	-- print("Getting pick",self.multiplyer,rarityTable)
+	-- print("after mods")
+	-- print(self:applyMultiplier(rarityTable))
+	-- print(self:withLuckBoost(rarityTable))
+	return self:weightedPick(self:applyMultiplier(rarityTable))
+end
 
 function RngEvaluator:weightedPick(rarityTable)
 	local total = self:sumWeights(rarityTable)
@@ -128,9 +218,6 @@ function RngEvaluator:weightedPick(rarityTable)
 		return nil
 	end
 	local roll = self.rng:NextNumber(0, total)
-
-	-- apply our multiplyer 
-	roll = roll*self.multiplyer
 
 	local acc = 0
 	for k, w in pairs(rarityTable) do

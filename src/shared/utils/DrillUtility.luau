@@ -100,6 +100,24 @@ function DrillUtility:getMineZoneFromPosition(position)
 
 end
 
+function DrillUtility:getMineZoneNameFromPosition(position)
+	local result = nil
+
+	-- make a raycast including only MineZones
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { workspace.Entities.MineZones }
+	local cast = workspace:Raycast(position, Vector3.new(0, -20, 0), params)
+
+
+	if cast and cast.Instance:IsDescendantOf(workspace.Entities.MineZones) then
+		result = cast.Instance.Parent.Name
+	end
+
+	return result
+
+end
+
 function DrillUtility:getDrillTargetPivot(player)
 
 	local character = player.Character

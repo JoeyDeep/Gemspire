@@ -40,13 +40,13 @@ function DrillService:collectLoot(player)
 	end
 
 
-	local lootArray = DrillService:evaluateDrillRng(lootYield,playerData.drill)
+	local lootArray = DrillService:evaluateDrillRng(player,lootYield,playerData.drill)
 
 
 	for index, loot in ipairs(lootArray) do
 		local lootId = HttpService:GenerateGUID(false)
 		table.insert(playerData.inventory.loot, { name = loot.key, trait = loot.traits, weight = loot.kg, id =  lootId})
-		InventoryService:drawHoldLoot({player=player}, {lootKey = loot.key, trait = loot.traits, kg = loot.kg},lootId)
+		InventoryService:drawHoldLoot({player=player}, {key = loot.key, trait = loot.traits, kg = loot.kg},lootId)
 	end
 
 	if #lootArray ~= 0 then
@@ -161,40 +161,12 @@ function DrillService:canPlayerPlaceDrill(player,targetPosition)
 	return result
 end
 
-function DrillService:evaluateDrillRng(totalLoot,drill)
-	local DrillUtility = engine:get("DrillUtility")
+function DrillService:evaluateDrillRng(player,totalLoot,drill)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+	local gemspireRng = engine:get("GemspireRngService").new(playerData)
 
-	local lootDefinitions = engine:get("Loot")
-	local drillDefinitions = engine:get("Drills")
-	local mineZone = DrillUtility:getMineZoneFromPosition(drill.position)
-
-
-	local rngEvaluator = engine:get("RngEvaluator").new(mineZone.loot, lootDefinitions)
-
-	rngEvaluator:applyModifier({
-		type="mult", 
-		value=drillDefinitions[drill.type].luck 
-	})
-
-	rngEvaluator:addAttachment({
-		resultKey="kg",
-		eval = {
-			type="rangeSelectWithLowBias", 
-			key = "kg_range", 
-			precision = 1 
-			-- definitionTable = engine:get("Loot"), -- If needed we can do this to supply a special definition table
-		}
-	})
-
-	rngEvaluator:addAttachment({
-		resultKey="traits",
-		eval = {
-			type="selectFromRarityTable", 
-			key ="traits", 
-		}
-	})
-
-	return rngEvaluator:generateResultArray(totalLoot)
+	return gemspireRng:evaluateDrillRng(totalLoot,drill)
 
 end
 

@@ -43,6 +43,21 @@ return {
 				},
 			},
 		},
+		-- myTestEvent = {
+		-- 	name = "Test Event",
+		-- 	description = "Testing",
+		-- 	duration = 120,
+		-- 	modifiers = {
+		-- 		luck = 0.50,
+		-- 	},
+		-- 	loot = {
+		-- 		zoneWeightMultipliers = {
+		-- 			["TestA"] = {
+		-- 				iron = 1.5
+		-- 			}
+		-- 		}
+		-- 	}
+		-- }
 	},
 	schedule = {
 		-- { eventId = "aurora", startAt = 1730000000, duration = 1800 },
