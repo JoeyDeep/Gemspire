@@ -414,22 +414,59 @@ function InventoryService:spawnLootInTray(trayModel, rewards)
 
 	for _, reward in pairs(rewards) do
 		local lootObj = lootStorage[reward.lootKey]:Clone()
-		local weld = Instance.new("WeldConstraint")
-		lootObj.Size *= Vector3.new(reward.kg, reward.kg, reward.kg)
-		local halfSize = lootObj.Size / 2
-		lootObj.CollisionGroup = "TrayLoot"
-		lootObj.Position = middlePos
-			+ Vector3.new(
-				rng:NextNumber(-traySize.X / 2 + halfSize.X, traySize.X / 2 - halfSize.X),
-				rng:NextNumber(halfSize.Y, halfSize.Y * 2),
-				rng:NextNumber(-traySize.Z / 2 + halfSize.Z, traySize.Z / 2 - halfSize.Z)
+		if lootObj:IsA("Model") then
+			local modelExtents = lootObj:GetExtentsSize()
+			local largestExtent = math.max(modelExtents.X, modelExtents.Y, modelExtents.Z)
+			lootObj:ScaleTo(largestExtent * reward.kg)
+			for _, basePart in pairs(lootObj:GetDescendants()) do
+				if basePart:IsA("BasePart") then
+					basePart.CollisionGroup = "TrayLoot"
+					if basePart ~= lootObj.PrimaryPart then
+						local weld = Instance.new("WeldConstraint")
+						weld.Part1 = basePart
+						weld.Part0 = lootObj.PrimaryPart
+						weld.Parent = basePart
+					end
+				end
+			end
+			lootObj:PivotTo(
+				CFrame.new(
+					middlePos
+						+ Vector3.new(
+							rng:NextNumber(-traySize.X / 2 + modelExtents.X / 2, traySize.X / 2 - modelExtents.X / 2),
+							rng:NextNumber(modelExtents.Y / 2, modelExtents.Y),
+							rng:NextNumber(-traySize.Z / 2 + modelExtents.Z / 2, traySize.Z / 2 - modelExtents.Z / 2)
+						)
+				)
+					* CFrame.Angles(
+						math.rad(math.random(0, 360)),
+						math.rad(math.random(0, 360)),
+						math.rad(math.random(0, 360))
+					)
 			)
-		lootObj.Orientation = Vector3.new(rng:NextNumber(0, 360), rng:NextNumber(0, 360), rng:NextNumber(0, 360))
-		lootObj.Parent = lootFolder
-		lootObj.Anchored = false
-		weld.Part1 = trayModel.Handle
-		weld.Part0 = lootObj
-		weld.Parent = lootObj
+			lootObj.Parent = lootFolder
+			lootObj.PrimaryPart.Anchored = false
+			local weld = Instance.new("WeldConstraint")
+			weld.Part1 = trayModel.Handle
+			weld.Part0 = lootObj.PrimaryPart
+		else
+			lootObj.Size *= Vector3.new(reward.kg, reward.kg, reward.kg)
+			local halfSize = lootObj.Size / 2
+			lootObj.CollisionGroup = "TrayLoot"
+			lootObj.Position = middlePos
+				+ Vector3.new(
+					rng:NextNumber(-traySize.X / 2 + halfSize.X, traySize.X / 2 - halfSize.X),
+					rng:NextNumber(halfSize.Y, halfSize.Y * 2),
+					rng:NextNumber(-traySize.Z / 2 + halfSize.Z, traySize.Z / 2 - halfSize.Z)
+				)
+			lootObj.Orientation = Vector3.new(rng:NextNumber(0, 360), rng:NextNumber(0, 360), rng:NextNumber(0, 360))
+			lootObj.Parent = lootFolder
+			lootObj.Anchored = false
+			local weld = Instance.new("WeldConstraint")
+			weld.Part1 = trayModel.Handle
+			weld.Part0 = lootObj
+			weld.Parent = lootObj
+		end
 	end
 end
 
@@ -853,12 +890,10 @@ function InventoryService:equipRefiningKit(player)
 	end
 	local opts = {
 		rng = Random.new(), -- seed by player.UserId?
-		pickaxeLuck = ModifierManager
-				and function(pickaxeName, pickaxeDefs)
-					local def = pickaxeDefs and pickaxeDefs[pickaxeName]
-					return def and def.stats and def.stats.luck or 1
-				end
-			or nil,
+		pickaxeLuck = ModifierManager and function(pickaxeName, pickaxeDefs)
+			local def = pickaxeDefs and pickaxeDefs[pickaxeName]
+			return def and def.stats and def.stats.luck or 1
+		end or nil,
 	}
 	if WorldEventService then
 		local eventOpts = WorldEventService:getLootRngOptions()

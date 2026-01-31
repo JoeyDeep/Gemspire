@@ -197,7 +197,7 @@ function RefiningKit:stopRefining()
 		:andThen(function()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-			
+
 			engine.PlayerGui.UI.Inventory.Visible = true
 			workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
 
@@ -409,8 +409,8 @@ function RefiningKit:update(data)
 				local progressCF = fillOffsets.Min:Lerp(fillOffsets.Max, data.now / data.max)
 				containerModel.Rubble.Transparency = 0
 				containerModel.FillPlane.Transparency = 0
-				QuickTween(fillMotor, 2, { C0 = progressCF })
-				QuickTween(rubbleMotor, 2, { C0 = progressCF:ToWorldSpace(fillOffsets.RubbleOffset) })
+				QuickTween(fillMotor, 0.3, { C0 = progressCF })
+				QuickTween(rubbleMotor, 0.3, { C0 = progressCF:ToWorldSpace(fillOffsets.RubbleOffset) })
 				-- fillMotor.C0 = progressCF
 				-- rubbleMotor.C0 = progressCF:ToWorldSpace(fillOffsets.RubbleOffset)
 			else

@@ -43,8 +43,41 @@ return {
 				},
 			},
 		},
+		myTestEvent = {
+			name = "Test Event V1",
+			description = "Description",
+			duration = 120, -- seconds
+			modifiers = {
+				luck = 0.15, -- +15% luck
+			},
+			loot = {
+				-- multipliers use 1.15 for +15%
+				zoneWeightMultipliers = {
+					["TestA"] = {
+						iron = 1.5,
+					},
+				},
+				zoneAdditions = {
+					["TestA"] = {
+						gold = 0.1,
+						geode = 0.1,
+					},
+				},
+				traitWeightMultipliers = {
+					["TestA"] = {
+						ancient = 1.5,
+					},
+				},
+				traitAdditions = {
+					["*"] = {
+						glowing = 0.75,
+					},
+				},
+			},
+		},
 	},
 	schedule = {
+		{ eventId = "myTestEvent", startAt = 1769192093 },
 		-- { eventId = "aurora", startAt = 1730000000, duration = 1800 },
 	},
 }
