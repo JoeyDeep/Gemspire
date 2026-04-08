@@ -46,6 +46,14 @@ function WorldEventService.init(engineModule)
 	WorldEventService:_snapshotLighting()
 	WorldEventService:_startScheduler()
 	WorldEventService:_broadcastState()
+
+	-- task.delay(5, function()
+		
+	-- 	WorldEventService:startEvent("myTestEvent")
+	-- 	WorldEventService:startEvent("aurora")
+	-- 	print("event started")
+	
+	-- end)
 end
 
 function WorldEventService:_snapshotLighting()
@@ -315,17 +323,50 @@ function WorldEventService:_applyTraitModifiers(weights, lootKey)
 		end
 	end
 
-	local total = 0
-	for _, weight in pairs(adjusted) do
-		total += weight
-	end
-	if total > 0 then
-		for trait, weight in pairs(adjusted) do
-			adjusted[trait] = weight / total
-		end
-	end
+	-- local total = 0
+	-- for _, weight in pairs(adjusted) do
+	-- 	total += weight
+	-- end
+	-- if total > 0 then
+	-- 	for trait, weight in pairs(adjusted) do
+	-- 		adjusted[trait] = weight / total
+	-- 	end
+	-- end
 
 	return adjusted
+end
+
+local function deepCopy(original)
+	local copy = {}
+	for k, v in pairs(original) do
+		if type(v) == "table" then
+			v = deepCopy(v)
+		end
+		copy[k] = v
+	end
+	return copy
+end
+
+function WorldEventService:applyTraitModifiersForZone(lootDefinitions, zone)
+	local modifiers = self:_collectLootModifiers()
+	local hasMods = next(modifiers.traitWeightMultipliers) or next(modifiers.traitAdditions)
+	if not hasMods then
+		return lootDefinitions
+	end
+
+	local adjustedLootDefinitions = deepCopy(lootDefinitions)
+	for lootName, lootDef in pairs(adjustedLootDefinitions) do 
+		if adjustedLootDefinitions[lootName].traits then 
+			adjustedLootDefinitions[lootName].traits = self:_applyTraitModifiers(lootDefinitions[lootName].traits,zone)
+		end
+		
+	end
+
+	return adjustedLootDefinitions
+end
+
+function WorldEventService:getRngOptions()
+	return self:_collectLootModifiers()
 end
 
 function WorldEventService:getLootRngOptions()

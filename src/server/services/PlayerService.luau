@@ -20,6 +20,7 @@ local ProfileService = require(ServerScriptService.ServerPackages.ProfileService
 local PlayerService = {
 	players = {},
 	PlayerAdded = Signal.new(),
+	PlayerRemoved = Signal.new(),
 }
 PlayerService.__index = PlayerService
 
@@ -36,6 +37,11 @@ function PlayerService.init(engineModule)
 	Players.PlayerAdded:Connect(function(player)
 		PlayerService.new(player)
 	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		PlayerService:playerRemoved(player)
+	end)
+
 	for _, player in ipairs(Players:GetPlayers()) do
 		Promise.new(function(resolve)
 			resolve(PlayerService.new(player))
@@ -107,6 +113,10 @@ function PlayerService.new(player)
 	print(`{player.Name} has joined:`, self)
 
 	self:newPlayerSetup()
+end
+
+function PlayerService:playerRemoved(player)
+	PlayerService.PlayerRemoved:Fire(self)
 end
 
 function PlayerService:updateClient(dataTable)

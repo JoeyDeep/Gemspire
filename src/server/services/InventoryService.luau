@@ -202,6 +202,11 @@ function InventoryService.register(playerClass)
 	end
 
 	local storage = ReplicatedStorage.Storage
+	
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+
+	
 
 	local equippedPickaxe = playerClass.profile.Data.equipped.pickaxe
 	local pickaxeIndex = 1
@@ -231,6 +236,11 @@ function InventoryService.register(playerClass)
 	else
 		warn("[InventoryService] Vault tool missing or not a Tool.")
 	end
+
+	local drillTool = storage.Tools.Drills.Drill:Clone()
+	drillTool.Name = playerData.drill.type
+	drillTool:SetAttribute("BackpackIndex", 3)
+	drillTool.Parent = player.Backpack
 
 	-- LOOT!
 	-- InventoryService:addLootEntry(player, loot.lootKey, loot.kg, loot.trait, id)
@@ -298,7 +308,7 @@ function InventoryService:drawHoldLoot(playerClass, lootData, id)
 
 	local truncatedWeight = math.floor(lootData.kg * 100) / 100
 
-	local handle = storage.Loot[lootData.lootKey]:Clone()
+	local handle = storage.Loot[lootData.key]:Clone()
 	local tool = Instance.new("Tool")
 	if handle:IsA("Model") then
 		handle:ScaleTo(handle:GetScale() * lootData.kg)
@@ -323,12 +333,12 @@ function InventoryService:drawHoldLoot(playerClass, lootData, id)
 
 	handle.Parent = tool
 	tool:SetAttribute("Type", "HoldLoot")
-	tool:SetAttribute("LootKey", lootData.lootKey)
+	tool:SetAttribute("LootKey", lootData.key)
 	tool:SetAttribute("Weight", truncatedWeight)
 	tool:SetAttribute("Trait", lootData.trait or "none")
 	tool.Grip *= CFrame.Angles(0, math.rad(math.random(0, 360)), 0)
 	tool.Name = id
-	tool.ToolTip = `{lootData.lootKey} ({truncatedWeight} kg)`
+	tool.ToolTip = `{lootData.key} ({truncatedWeight} kg)`
 	tool.Parent = playerClass.player.Backpack
 end
 
@@ -873,45 +883,53 @@ function InventoryService:equipRefiningKit(player)
 	end
 
 	-- determine findings
-	local kitStats = kitData.stats
-	if ModifierManager then
-		kitStats = ModifierManager:getKitStats(player, equippedKit) or kitData.stats
-	end
+	-- local kitStats = kitData.stats
+	-- if ModifierManager then
+	-- 	kitStats = ModifierManager:getKitStats(player, equippedKit) or kitData.stats
+	-- end
 	local kitForRng = kitData
-	if kitStats ~= kitData.stats then
-		kitForRng = table.clone(kitData)
-		kitForRng.stats = kitStats
-	end
+	-- if kitStats ~= kitData.stats then
+	-- 	kitForRng = table.clone(kitData)
+	-- 	kitForRng.stats = kitStats
+	-- end
 
-	local baseLuck = ModifierManager and ModifierManager:getBaseLuck(player) or 1
-	local zones = engine:get("MineZones")
-	if WorldEventService then
-		zones = WorldEventService:applyLootZones(zones)
-	end
-	local opts = {
-		rng = Random.new(), -- seed by player.UserId?
-		pickaxeLuck = ModifierManager and function(pickaxeName, pickaxeDefs)
-			local def = pickaxeDefs and pickaxeDefs[pickaxeName]
-			return def and def.stats and def.stats.luck or 1
-		end or nil,
-	}
-	if WorldEventService then
-		local eventOpts = WorldEventService:getLootRngOptions()
-		if eventOpts then
-			for key, value in pairs(eventOpts) do
-				opts[key] = value
-			end
-		end
-	end
-	local rewards = LootRNG.RollFromEntries({
-		entries = playerData.container,
-		kit = kitForRng,
-		pickaxes = engine:get("Pickaxes"),
-		zones = zones,
-		lootDefs = engine:get("Loot"),
-		baseLuck = baseLuck,
-		opts = opts,
-	})
+	-- local baseLuck = ModifierManager and ModifierManager:getBaseLuck(player) or 1
+	-- local zones = engine:get("MineZones")
+	-- if WorldEventService then
+	-- 	zones = WorldEventService:applyLootZones(zones)
+	-- end
+	-- local opts = {
+	-- 	rng = Random.new(), -- seed by player.UserId?
+	-- 	pickaxeLuck = ModifierManager
+	-- 			and function(pickaxeName, pickaxeDefs)
+	-- 				local def = pickaxeDefs and pickaxeDefs[pickaxeName]
+	-- 				return def and def.stats and def.stats.luck or 1
+	-- 			end
+	-- 		or nil,
+	-- }
+	-- if WorldEventService then
+	-- 	local eventOpts = WorldEventService:getLootRngOptions()
+	-- 	if eventOpts then
+	-- 		for key, value in pairs(eventOpts) do
+	-- 			opts[key] = value
+	-- 		end
+	-- 	end
+	-- end
+	-- local rewards = LootRNG.RollFromEntries({
+	-- 	entries = playerData.container,
+	-- 	kit = kitForRng,
+	-- 	pickaxes = engine:get("Pickaxes"),
+	-- 	zones = zones,
+	-- 	lootDefs = engine:get("Loot"),
+	-- 	baseLuck = baseLuck,
+	-- 	opts = opts,
+	-- })
+
+	local gemspireRng = engine:get("GemspireRngService")
+
+	local rewards = gemspireRng.new(playerData):evaluateKitEntriesRng(playerData.container)
+	--print(rewards)
+
 
 	local containerStatus = InventoryService:getContainerStatus(player)
 	local lerpAlpha = 1 - math.clamp((containerStatus.now / containerStatus.max), 0, 1)
@@ -931,7 +949,7 @@ function InventoryService:equipRefiningKit(player)
 		loot.kg = math.floor(loot.kg * 100) / 100 -- round to 2 decimal places
 		local id = HttpService:GenerateGUID(false)
 		keyToId[index] = id
-		InventoryService:addLootEntry(player, loot.lootKey, loot.kg, loot.trait, id)
+		InventoryService:addLootEntry(player, loot.key, loot.kg, loot.trait, id)
 	end
 
 	InventoryService:spawnLootInTray(trayModel, rewards)
@@ -1128,6 +1146,7 @@ function InventoryService:strikePickaxe(player, score)
 	local ModifierManager = engine:get("ModifierManager")
 
 	local equippedPickaxe = playerData.equipped.pickaxe
+	local equippedKit = playerData.equipped.kit
 	local pickaxeData = Pickaxes[equippedPickaxe].stats
 	local refiningKitStatus = InventoryService:getContainerStatus(player)
 	local pickaxeStrength = pickaxeData.strength
@@ -1153,6 +1172,7 @@ function InventoryService:strikePickaxe(player, score)
 
 	if
 		equippedPickaxe
+		and equippedKit
 		and refiningKitStatus.now < refiningKitStatus.max
 		and zone
 		and MineZones[zone]
@@ -1162,6 +1182,7 @@ function InventoryService:strikePickaxe(player, score)
 		local amount = math.min(pickaxeStrength, refiningKitStatus.max - refiningKitStatus.now)
 		table.insert(playerData.container, {
 			pickaxe = equippedPickaxe,
+			kit = equippedKit,
 			amount = amount,
 			score = score,
 			zone = zone,

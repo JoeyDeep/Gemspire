@@ -3,4 +3,6 @@ return {
 
 	HoldLoot = "rbxassetid://6788518051",
 	Pickaxe = "http://www.roblox.com/asset/?id=14257565324",
+	Drill = "rbxassetid://121607216472874",
+
 }

@@ -47,7 +47,7 @@ local function getEquippedEquipment(playerData)
 	return equippedItems
 end
 
-local function accumulateStatModifiers(playerData)
+function ModifierManager:accumulateStatModifiers(playerData)
 	local totals = {}
 	for _, item in ipairs(getEquippedEquipment(playerData)) do
 		if typeof(item.stats) == "table" then
@@ -109,7 +109,7 @@ function ModifierManager:getPickaxeStat(player, stat, pickaxeName)
 		return nil
 	end
 
-	local modifiers = accumulateStatModifiers(playerData)
+	local modifiers = ModifierManager:accumulateStatModifiers(playerData)
 	return applyPercentModifier(baseValue, modifiers[stat] or 0)
 end
 
@@ -130,7 +130,7 @@ function ModifierManager:getPickaxeStats(player, pickaxeName)
 		return nil
 	end
 
-	local modifiers = accumulateStatModifiers(playerData)
+	local modifiers = ModifierManager:accumulateStatModifiers(playerData)
 	local combined = {}
 	for stat, value in pairs(pickaxeData.stats) do
 		combined[stat] = applyPercentModifier(value, modifiers[stat] or 0)
@@ -158,7 +158,7 @@ function ModifierManager:getKitStat(player, stat, kitName)
 		return nil
 	end
 
-	local modifiers = accumulateStatModifiers(playerData)
+	local modifiers = ModifierManager:accumulateStatModifiers(playerData)
 	return applyPercentModifier(baseValue, modifiers[stat] or 0)
 end
 
@@ -179,7 +179,7 @@ function ModifierManager:getKitStats(player, kitName)
 		return nil
 	end
 
-	local modifiers = accumulateStatModifiers(playerData)
+	local modifiers = ModifierManager:accumulateStatModifiers(playerData)
 	local combined = {}
 	for stat, value in pairs(kitData.stats) do
 		combined[stat] = applyPercentModifier(value, modifiers[stat] or 0)
@@ -194,7 +194,7 @@ function ModifierManager:getBaseLuck(player)
 		return 1
 	end
 
-	local modifiers = accumulateStatModifiers(playerData)
+	local modifiers = ModifierManager:accumulateStatModifiers(playerData)
 	local luck = modifiers.luck
 	if typeof(luck) ~= "number" then
 		luck = 0

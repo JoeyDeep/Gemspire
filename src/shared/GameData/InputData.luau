@@ -50,6 +50,21 @@ return {
 			}
 		},
 
+		Drill = {
+			MouseKeyboard = {
+				Type = "KeyCode",
+				Input = Enum.KeyCode.E,
+			},
+			Touch = {
+				Type = "UserInputType",
+				Input = Enum.UserInputType.Touch,
+			},
+			Gamepad = {
+				Type = "KeyCode",
+				Input = Enum.KeyCode.ButtonX,
+			},
+		},
+
 		Refine = {
 			MouseKeyboard = {
 				Type = "KeyCode",

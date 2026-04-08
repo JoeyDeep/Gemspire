@@ -419,6 +419,26 @@ return {
 		value_per_kg = 5000,
 		kg_range = { min = 0.1, max = 1 },
 		traits = {
+			none = 0.9,
+			ancient = 0.05,
+			cursed = 0.05,
+		},
+	},
+	auroraShard = {
+		name = "Aurora Shard",
+		description = "A rare and powerful diamond said to be formed from the remnants of a fallen star.", --change me
+		rarity = 1,
+		color = Color3.fromRGB(228, 228, 228), -- change my values
+
+		material_type = "Gem",
+		craft_luck = 0.14,
+		craft_modifiers = {
+			luck = 0.15,
+		},
+
+		value_per_kg = 5000,
+		kg_range = { min = 0.1, max = 1 },
+		traits = {
 			none = 0.05,
 			ancient = 0.9,
 			cursed = 0.05,
