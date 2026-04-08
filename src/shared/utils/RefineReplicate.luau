@@ -27,13 +27,13 @@ function RefineRep:setProgress(hostClient, equippedKit, progress, targetRubble)
 
 	local trayModel = hostCharacter[`{equippedTray}_Tray`]
 
-	for _, lootObj in pairs(trayModel.Loot:GetChildren()) do
+	local function processLootObj(lootObj)
 		local largestAxis = math.max(lootObj.Size.X, lootObj.Size.Y, lootObj.Size.Z)
 		if
 			lootObj.Position.Y - largestAxis / 2 < trayModel.RefineEntities.FillPlane.Position.Y
 			or not lootObj:FindFirstChild("WeldConstraint")
 		then
-			continue
+			return
 		end
 
 		local lootData = Loot[lootObj.Name]
@@ -47,6 +47,14 @@ function RefineRep:setProgress(hostClient, equippedKit, progress, targetRubble)
 			billboard.TextLabel.TextColor3 = lootData.color
 			billboard.StudsOffset = Vector3.new(0, largestAxis / 1.5, 0)
 			billboard.Parent = lootObj
+		end
+	end
+
+	for _, lootObj in pairs(trayModel.Loot:GetChildren()) do
+		if lootObj:IsA("Model") then
+			processLootObj(lootObj.PrimaryPart)
+		else
+			processLootObj(lootObj)
 		end
 	end
 

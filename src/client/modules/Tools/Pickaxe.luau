@@ -183,10 +183,9 @@ function Pickaxe:strike()
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = { workspace.Terrain, workspace.Entities.MineZones }
-	local cast = workspace:Raycast(character:GetPivot().Position, Vector3.new(0, -20, 0), params)
+	local cast = workspace:Raycast(character:GetPivot().Position + Vector3.new(0, 3, 0), Vector3.new(0, -23, 0), params)
 	if not cast then
 		self:_resetStrikeState("no-terrain")
-		print("!")
 		return
 	end
 
@@ -246,16 +245,46 @@ function Pickaxe:readStrikeGame()
 	end
 	self.tween = nil
 
+	local impactParams = RaycastParams.new()
+	impactParams.FilterType = Enum.RaycastFilterType.Exclude
+	impactParams.FilterDescendantsInstances = { workspace.Entities }
+	local impactPos = workspace:Raycast(
+		Players.LocalPlayer.Character:GetPivot():ToWorldSpace(CFrame.new(0, 0, -2.5)).Position + Vector3.new(0, 3, 0),
+		Vector3.new(0, -10, 0),
+		impactParams
+	)
+
 	-- i might be trolling
 	local truncatedScore = math.floor((1 / (math.floor((1 / (1 - barY)) * 100) / 100)) * 100) / 100
 	engine.events.Inventory:FireServer("strikePickaxe", truncatedScore)
 
+	local wasPerfect = false
 	return Promise.resolve()
 		:andThen(function()
 			-- Feedback popup
 			if barY < 0.5 then
 				local billboard = ReplicatedStorage.Storage.Billboards.StrikeGame.CharacterBoard:Clone()
 				if barY <= 0.04 then
+					local VFX = engine:get("VFX")
+					VFX:play(
+						"Wisp",
+						Players.LocalPlayer.Character.HumanoidRootPart,
+						{
+							position = Players.LocalPlayer.Character.HumanoidRootPart.Position,
+							softEnabled = true,
+							cleanupDelay = 2,
+						}
+					)
+					VFX:play(
+						"LightBeamAura",
+						Players.LocalPlayer.Character.HumanoidRootPart,
+						{
+							position = Players.LocalPlayer.Character.HumanoidRootPart.Position,
+							softEnabled = true,
+							cleanupDelay = 2,
+						}
+					)
+					wasPerfect = true
 					billboard.TextLabel.Text = "PERFECT!"
 					billboard.TextLabel.TextColor3 = Color3.fromRGB(255, 180, 29)
 				else
@@ -295,11 +324,31 @@ function Pickaxe:readStrikeGame()
 			-- Enter STRIKE exclusively
 			self:_playOnly("Strike", 0)
 			self.animations.Strike:GetMarkerReachedSignal("Hit"):Once(function()
-				engine:get("Sound"):playLocalFromRandom("PickaxeStrike", self.tool.Handle)
+				local Debris = engine:get("Debris")
+
+				if wasPerfect then
+					engine:get("Sound"):playLocal("PerfectStrike", self.tool.Handle)
+				else
+					engine:get("Sound"):playLocalFromRandom("PickaxeStrike", self.tool.Handle)
+				end
 				if self.gamepadInput.SupportsVibration then
 					self.gamepadInput:PulseMotor(Enum.VibrationMotor.Large, 0.6, 0.1)
 				end
 				self.cameraShaker:ShakeOnce(1.5, 5, 0.1, 0.3)
+				if impactPos and impactPos.Position then
+					local VFX = engine:get("VFX")
+					VFX:play("ImpactFlash", workspace, { position = impactPos.Position, emit = 1 })
+					VFX:play("Smoke", workspace, { position = impactPos.Position, emit = 1 })
+					Debris:spawn({
+						epicenter = impactPos.Position,
+						count = wasPerfect and 12 or 6,
+						size = { min = Vector3.new(0.5, 0.5, 0.5), max = Vector3.new(0.85, 0.85, 0.85) },
+						radius = 1,
+						impulse = wasPerfect and 25 or 20,
+						lifetime = wasPerfect and 2 or 1.25,
+						randomRotation = true,
+					})
+				end
 			end)
 			return Promise.fromEvent(self.animations.Strike.Stopped)
 		end)
@@ -322,14 +371,13 @@ function Pickaxe:requestStrike()
 	local MineZones = engine:get("MineZones")
 	local character = Players.LocalPlayer.Character
 	if not (character and self.equipped and tick() > (self.strikeCooldown or 0)) then
-		print("!")
 		return false
 	end
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = { workspace.Entities.MineZones }
-	local cast = workspace:Raycast(character:GetPivot().Position, Vector3.new(0, -20, 0), params)
+	local cast = workspace:Raycast(character:GetPivot().Position + Vector3.new(0, 5, 0), Vector3.new(0, -25, 0), params)
 	local density = self:_getStat("density")
 
 	if cast and cast.Instance:IsDescendantOf(workspace.Entities.MineZones) then
