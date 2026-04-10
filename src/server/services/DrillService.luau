@@ -83,7 +83,7 @@ function DrillService:placeDrill(player, data)
 
 		placedDrill:PivotTo(targetPivot)
 
-		placedDrill:setAttribute("Owner",player.UserId)
+		placedDrill:SetAttribute("Owner",player.UserId)
 
 		playerData.drill.spawnTime = os.time()
 		playerData.drill.position = targetPivot.Position
