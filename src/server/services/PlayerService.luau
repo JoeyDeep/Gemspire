@@ -117,6 +117,14 @@ end
 
 function PlayerService:playerRemoved(player)
 	PlayerService.PlayerRemoved:Fire(self)
+
+	print("leaving: " .. player.Name)
+	if self.profile then
+		self.profile:Release()
+		print("released")
+		Players.players[player.Name] = nil
+		setmetatable(self, nil)
+	end
 end
 
 function PlayerService:updateClient(dataTable)

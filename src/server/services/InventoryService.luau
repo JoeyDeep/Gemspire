@@ -202,11 +202,9 @@ function InventoryService.register(playerClass)
 	end
 
 	local storage = ReplicatedStorage.Storage
-	
+
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:getData(player)
-
-	
 
 	local equippedPickaxe = playerClass.profile.Data.equipped.pickaxe
 	local pickaxeIndex = 1
@@ -423,7 +421,8 @@ function InventoryService:spawnLootInTray(trayModel, rewards)
 	lootFolder.Parent = trayModel
 
 	for _, reward in pairs(rewards) do
-		local lootObj = lootStorage[reward.lootKey]:Clone()
+		print(reward)
+		local lootObj = lootStorage[reward.key]:Clone()
 		if lootObj:IsA("Model") then
 			local modelExtents = lootObj:GetExtentsSize()
 			local largestExtent = math.max(modelExtents.X, modelExtents.Y, modelExtents.Z)
@@ -929,7 +928,6 @@ function InventoryService:equipRefiningKit(player)
 
 	local rewards = gemspireRng.new(playerData):evaluateKitEntriesRng(playerData.container)
 	--print(rewards)
-
 
 	local containerStatus = InventoryService:getContainerStatus(player)
 	local lerpAlpha = 1 - math.clamp((containerStatus.now / containerStatus.max), 0, 1)
