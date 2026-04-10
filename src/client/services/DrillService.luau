@@ -42,7 +42,7 @@ function DrillService:checkDrillBelongsToLocalPlayer(drillObject)
 
 	local player = game:GetService("Players").LocalPlayer
 
-	local owner = drillObject:getAttribute("Owner")
+	local owner = drillObject:GetAttribute("Owner")
 
 	return player.UserId == owner
 
