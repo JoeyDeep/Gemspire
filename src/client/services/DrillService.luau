@@ -20,9 +20,9 @@ function DrillService.init(engineModule)
 
 	game.Workspace.Entities.Drills.ChildAdded:Connect(function(drillObject)
 
-		-- if DrillService:checkDrillBelongsToLocalPlayer(drillObject) then
+		if DrillService:checkDrillBelongsToLocalPlayer(drillObject) then
 			DrillService.placedDrill = engine:get("PlacedDrill").new(drillObject)
-		-- end
+		end
 
 	end)
 

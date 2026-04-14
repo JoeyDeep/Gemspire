@@ -19,6 +19,10 @@ function DrillService.init(engineModule)
 			DrillService:collectLoot(player)
 		elseif event == "pickupDrill" then
 			DrillService:pickupPlayerDrill(player)
+		elseif event == "equipDrill" then
+			DrillService:equipDrill(player)
+		elseif event == "unequipDrill" then
+			DrillService:unequipDrill(player)
 		end
 		
 	end)
@@ -89,8 +93,47 @@ function DrillService:placeDrill(player, data)
 		playerData.drill.position = targetPivot.Position
 
 		PlayerService:get(player):updateClient({"drill"})
+
+		DrillUtility:paintPlayerDrill(player,placedDrill)
 	else
 		print("player cannot place drill")
+	end
+end
+
+function DrillService:equipDrill(player)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+	local DrillUtility = engine:get("DrillUtility")
+	local storage = ReplicatedStorage.Storage
+
+	local character = player.Character
+
+	local torso = character:FindFirstChild("Torso")
+
+	playerData.heldDrill = storage.Tools.Drills.Held.Drill:Clone()
+
+	DrillUtility:paintPlayerDrill(player,playerData.heldDrill)
+
+	local primaryPart =playerData.heldDrill.PrimaryPart
+
+	print(torso.CFrame.LookVector)
+
+	playerData.heldDrill:PivotTo(torso.CFrame + torso.CFrame.LookVector * 1.75 - torso.CFrame.RightVector * 1 + Vector3.new(0,-.75,0))
+	--primaryPart.CFrame = rightHand.CFrame
+
+	playerData.heldDrill.Parent = character
+
+	local gripWeld = Instance.new("WeldConstraint")
+    gripWeld.Part0 = torso
+    gripWeld.Part1 = primaryPart
+    gripWeld.Parent = torso
+end
+
+function DrillService:unequipDrill(player)
+	local PlayerService = engine:get("PlayerService")
+	local playerData = PlayerService:getData(player)
+	if playerData.heldDrill then
+		playerData.heldDrill:Destroy()
 	end
 end
 

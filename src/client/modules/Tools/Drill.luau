@@ -87,7 +87,7 @@ function Drill:equip()
 		print("do something else")
 		self:turnOnDrillBeam()
 	else
-		self:showEquipedDrill()
+		engine.events.Drill:FireServer("equipDrill")
 		self:carryDrillPlayerAnimation()
 	end
 
@@ -96,6 +96,7 @@ end
 function Drill:unequip()
 	print("We have unequiped the drill")
 	self.inputTrove:Destroy()
+	engine.events.Drill:FireServer("unequipDrill")
 	if self.heldDrill then
 		self.heldDrill:Destroy()
 	end
@@ -141,34 +142,7 @@ function Drill:turnOnDrillBeam()
 	self.beam.Parent = workspace
 end
 
-function Drill:showEquipedDrill()
 
-	local DrillUtility = engine:get("DrillUtility")
-	local storage = ReplicatedStorage.Storage
-
-	local character = Players.LocalPlayer.Character
-
-	local torso = character:FindFirstChild("Torso")
-
-	self.heldDrill = storage.Tools.Drills.Held.Drill:Clone()
-
-	DrillUtility:paintPlayerDrill(Players.LocalPlayer,self.heldDrill)
-
-	local primaryPart =self.heldDrill.PrimaryPart
-
-	print(torso.CFrame.LookVector)
-
-	self.heldDrill:PivotTo(torso.CFrame + torso.CFrame.LookVector * 1.75 - torso.CFrame.RightVector * 1 + Vector3.new(0,-.75,0))
-	--primaryPart.CFrame = rightHand.CFrame
-
-	self.heldDrill.Parent = character
-
-	local gripWeld = Instance.new("WeldConstraint")
-    gripWeld.Part0 = torso
-    gripWeld.Part1 = primaryPart
-    gripWeld.Parent = torso
-
-end
 
 function Drill:placeDrill()
 	print("placing drill")
