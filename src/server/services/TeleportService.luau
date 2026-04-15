@@ -17,7 +17,25 @@ function TeleporterService.init(engineModule)
 
 	engine.events.Teleporter.OnServerEvent:Connect(function(player,event,data)
 		print("here")
+		if event == "teleport" then
+			TeleporterService:TeleportHandler(player, data)
+		end
 	end)
+
+end
+
+function TeleporterService:TeleportHandler(player, data)
+	local teleporterA = workspace.Entities.Teleporters:WaitForChild(data.fromTeleporter)
+	local teleporterB = workspace.Entities.Teleporters:WaitForChild(data.toTeleporter)
+	TeleporterService:TeleportPlayer(player,teleporterA,teleporterB)
+end
+
+function TeleporterService:TeleportPlayer(player,teleA,teleB)
+	print(teleA.WorldPivot)
+	print(teleB.WorldPivot)
+	local humanoid = player.character.Humanoid
+	print(humanoid)
+	
 
 end
 

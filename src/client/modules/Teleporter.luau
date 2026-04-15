@@ -41,7 +41,7 @@ function Teleporter.new(teleporterModel)
 
 	prompt.prompt.Triggered:Connect(function()
 		print("teleport menu")
-        self:openUI()
+        -- self:openUI()
         self:teleport()
 	end)
 
@@ -56,6 +56,9 @@ function Teleporter:openUI()
 end
 
 function Teleporter:teleport()
-	engine.events.Teleporter:FireServer("teleport")
+	engine.events.Teleporter:FireServer("teleport", {
+		fromTeleporter = "TeleporterA",
+		toTeleporter = "TeleporterB",
+	})
 end
 return Teleporter
