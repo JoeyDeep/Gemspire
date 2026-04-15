@@ -18,7 +18,7 @@ function GemspireRngService.init(engineModule)
 end
 
 function GemspireRngService.new(playerData)
-	local self = setmetatable(GemspireRngService,{})
+	local self = setmetatable({},GemspireRngService)
 
 	GemspireRngService.activeClass = self
 
