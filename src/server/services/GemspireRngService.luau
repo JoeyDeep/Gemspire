@@ -9,6 +9,7 @@ local GemspireRngService = {
 	statMods = nil,
 	baseLuck = 1,
 }
+GemspireRngService.__index = GemspireRngService
 
 local engine
 function GemspireRngService.init(engineModule)
@@ -22,18 +23,18 @@ function GemspireRngService.new(playerData)
 
 	GemspireRngService.activeClass = self
 
-	self.lootDefinitions = engine:get("Loot")
-	self.drillDefinitions = engine:get("Drills")
-	self.pickaxeDefinitions = engine:get("Pickaxes")
-	self.kitDefinitions = engine:get("Kits")
-	self.mineZones = engine:get("MineZones")
+	GemspireRngService.lootDefinitions = engine:get("Loot")
+	GemspireRngService.drillDefinitions = engine:get("Drills")
+	GemspireRngService.pickaxeDefinitions = engine:get("Pickaxes")
+	GemspireRngService.kitDefinitions = engine:get("Kits")
+	GemspireRngService.mineZones = engine:get("MineZones")
 
 	local WorldEventService = engine:get("WorldEventService")
-	self.worldEvents = WorldEventService:getRngOptions()
-	self.mineZones = WorldEventService:applyLootZones(self.mineZones)
+	GemspireRngService.worldEvents = WorldEventService:getRngOptions()
+	GemspireRngService.mineZones = WorldEventService:applyLootZones(GemspireRngService.mineZones)
 
 	local ModifierManager = engine:get("ModifierManager")
-	self.statMods = ModifierManager:accumulateStatModifiers(playerData)
+	GemspireRngService.statMods = ModifierManager:accumulateStatModifiers(playerData)
 
 	-- print("world events",self.worldEvents)
 	-- print("world zones",self.mineZones)
