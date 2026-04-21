@@ -7,6 +7,7 @@ local CameraShaker = require(ReplicatedStorage.Packages.CameraShaker)
 local Pipecutter = {
 	transparencyCache = {},
 	inputTrove = nil,
+	cameraFovTween = nil,
 }
 
 local Encouragers = {
@@ -129,7 +130,7 @@ function Pipecutter:start(station, geodeTool)
 				particles.RigidDebrisClusters:Emit(2)
 				particles.DustDebris:Emit(5)
 				particles.SmokeClusters:Emit(2)
-				Sound:playGlobal("FullCrack")
+				--Sound:playGlobal("FullCrack")
 
 				Pipecutter:cleanup()
 				returnEvent:Fire(true)
@@ -193,7 +194,7 @@ function Pipecutter:start(station, geodeTool)
 				end
 			end
 
-			QuickTween(camera, 0.075, { FieldOfView = lerp(70, 45, count / maxCount) })
+			Pipecutter.cameraFovTween = QuickTween(camera, 0.075, { FieldOfView = lerp(70, 45, count / maxCount) })
 			local lerpedLeftPivot = leftStartPivot:Lerp(leftGoalPivot, count / maxCount)
 			local lerpedRightPivot = rightStartPivot:Lerp(rightGoalPivot, count / maxCount)
 			QuickTween(leftCFVal, 0.075, { Value = lerpedLeftPivot })
@@ -201,7 +202,7 @@ function Pipecutter:start(station, geodeTool)
 
 			task.delay(0.33, function()
 				if now == lastInputTime then
-					QuickTween(camera, 0.75, { FieldOfView = 70 })
+					Pipecutter.cameraFovTween = QuickTween(camera, 0.75, { FieldOfView = 70 })
 					count = 0
 					QuickTween(leftCFVal, 0.75, { Value = leftStartPivot })
 					QuickTween(rightCFVal, 0.75, { Value = rightStartPivot })
@@ -258,17 +259,27 @@ end
 
 function Pipecutter:cleanup()
 	local camera = workspace.CurrentCamera
-	camera.CameraType = Enum.CameraType.Custom
-	camera.CameraSubject = engine.player.Character:WaitForChild("Humanoid")
+	if Pipecutter.cameraFovTween then
+		Pipecutter.cameraFovTween:Cancel()
+		Pipecutter.cameraFovTween = nil
+	end
+	-- Stop CameraShaker before switching camera type so it can't
+	-- write to camera.CFrame while the camera module is initializing
+	Pipecutter.inputTrove:Destroy()
 	camera.FieldOfView = 70
+	-- Reset to a safe horizontal CFrame so ClassicCamera doesn't clamp-fail on a steep pitch
+	local hrp = engine.player.Character and engine.player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		camera.CFrame = CFrame.lookAt(hrp.Position + Vector3.new(0, 2, 8), hrp.Position + Vector3.new(0, 1, 0))
+	end
+	camera.CameraSubject = engine.player.Character:WaitForChild("Humanoid")
+	camera.CameraType = Enum.CameraType.Custom
 	for basePart, transparency in pairs(Pipecutter.transparencyCache) do
 		basePart.Transparency = transparency
 	end
 	engine.PlayerGui.UI.Vignette.ImageTransparency = 1
 	engine.PlayerGui.UI.GeodeCutGame.GamepadInput.Visible = false
 	Pipecutter.transparencyCache = {}
-	Pipecutter.inputTrove:Destroy()
-	camera.CameraType = Enum.CameraType.Custom
 end
 
 return Pipecutter

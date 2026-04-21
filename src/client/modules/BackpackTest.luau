@@ -251,9 +251,25 @@ function BackpackTest.new(toolObject)
 			newTool.Icon.Image = Icons.Drill
 		end,
 		["HoldLoot"] = function()
-			local itemData = engine:get("Loot")[toolObject:GetAttribute("LootKey")]
+			local lootKey    = toolObject:GetAttribute("LootKey")
+			local contentKey = toolObject:GetAttribute("ContentKey")
+			local trait      = toolObject:GetAttribute("Trait")
+			local displayName
+
+			if lootKey == "crackedGeode" and contentKey then
+				local Loot       = engine:get("Loot")
+				local LootTraits = engine:get("LootTraits")
+				local traitPrefix = (trait and trait ~= "none" and LootTraits[trait])
+					and (LootTraits[trait].name .. " ") or ""
+				local contentName = (Loot[contentKey] and Loot[contentKey].name) or contentKey
+				displayName = traitPrefix .. contentName .. " Geode"
+			else
+				local itemData = engine:get("Loot")[lootKey]
+				displayName = itemData and itemData.name or lootKey
+			end
+
 			local mainTitle = newTool.Titles.Template:Clone()
-			mainTitle.Text = itemData.name
+			mainTitle.Text = displayName
 			mainTitle.Name = "MainTitle"
 			mainTitle.Visible = true
 			mainTitle.Parent = newTool.Titles
@@ -261,8 +277,7 @@ function BackpackTest.new(toolObject)
 			newTool.Weight.Text = `{toolObject:GetAttribute("Weight")} kg`
 			newTool.Weight.Visible = true
 
-			local trait = toolObject:GetAttribute("Trait")
-			if trait and trait ~= "none" then
+			if trait and trait ~= "none" and lootKey ~= "crackedGeode" then
 				local traitTitle = newTool.Titles.Template:Clone()
 				traitTitle.Text = `{trait}`
 				traitTitle.Name = "TraitTitle"

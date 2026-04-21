@@ -306,7 +306,23 @@ function InventoryService:drawHoldLoot(playerClass, lootData, id)
 
 	local truncatedWeight = math.floor(lootData.kg * 100) / 100
 
-	local handle = storage.Loot[lootData.key]:Clone()
+	local resolvedKey = lootData.lootKey or lootData.key
+	local handle
+
+	if resolvedKey == "crackedGeode" and lootData.contentKey then
+		handle = storage.Geode.Geode:Clone()
+		local lootDef = engine:get("Loot")[lootData.contentKey]
+		if lootDef then
+			for _, part in pairs(handle.Colored:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Color = lootDef.color
+				end
+			end
+		end
+	else
+		handle = storage.Loot[resolvedKey]:Clone()
+	end
+
 	local tool = Instance.new("Tool")
 	if handle:IsA("Model") then
 		handle:ScaleTo(handle:GetScale() * lootData.kg)
@@ -331,12 +347,15 @@ function InventoryService:drawHoldLoot(playerClass, lootData, id)
 
 	handle.Parent = tool
 	tool:SetAttribute("Type", "HoldLoot")
-	tool:SetAttribute("LootKey", lootData.key)
+	tool:SetAttribute("LootKey", resolvedKey)
 	tool:SetAttribute("Weight", truncatedWeight)
 	tool:SetAttribute("Trait", lootData.trait or "none")
+	if lootData.contentKey then
+		tool:SetAttribute("ContentKey", lootData.contentKey)
+	end
 	tool.Grip *= CFrame.Angles(0, math.rad(math.random(0, 360)), 0)
 	tool.Name = id
-	tool.ToolTip = `{lootData.key} ({truncatedWeight} kg)`
+	tool.ToolTip = `{resolvedKey} ({truncatedWeight} kg)`
 	tool.Parent = playerClass.player.Backpack
 end
 
