@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "roblox-studio": {
+      "command": "/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP",
+      "args": []
+    },
+    "my-mcp-server-d2bd9350": {
+      "type": "stdio",
+      "command": "/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP",
+      "args": []
+    }
+  }
+}

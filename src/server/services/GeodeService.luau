@@ -60,7 +60,8 @@ function GeodeService:crackAllGeodes(player)
 			trait       = g.trait,
 			contentKey  = contentKey,
 			displayName = traitPrefix .. contentName .. " Geode",
-			color       = (Loot[contentKey] and Loot[contentKey].color) or Color3.fromRGB(228, 228, 228),
+			color          = (Loot[contentKey] and Loot[contentKey].color) or Color3.fromRGB(228, 228, 228),
+			colorSecondary = (Loot[contentKey] and Loot[contentKey].colorSecondary) or Color3.fromRGB(200, 200, 200),
 			image       = GeodeContents[contentKey] and GeodeContents[contentKey].image or "",
 		})
 	end

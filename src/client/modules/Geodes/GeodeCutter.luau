@@ -26,13 +26,32 @@ function GeodeCutter.new(cuttingStation)
 	self.prompt:set("ObjectText", `{self.method} Table`)
 	self.prompt:set("Parent", cuttingStation:WaitForChild("CamPart"))
 
+	local function findGeodeInInventory()
+		local character = engine.player.Character
+		local backpack = engine.player.Backpack
+		if character then
+			local tool = character:FindFirstChildWhichIsA("Tool")
+			if tool and tool:GetAttribute("LootKey") == "geode" then
+				return tool
+			end
+		end
+		if backpack then
+			for _, tool in pairs(backpack:GetChildren()) do
+				if tool:IsA("Tool") and tool:GetAttribute("LootKey") == "geode" then
+					return tool
+				end
+			end
+		end
+		return nil
+	end
+
 	self.prompt.prompt.Triggered:Connect(function()
-		local tool = engine.player.Character and engine.player.Character:FindFirstChildWhichIsA("Tool")
-		if tool and tool:GetAttribute("LootKey") == "geode" then
-			self:crackSequence(tool)
+		local geodeTool = findGeodeInInventory()
+		if geodeTool then
+			self:crackSequence(geodeTool)
 		else
 			NotificationService.new(
-				`<i>You need to be holding a Geode to use this station.</i>`,
+				`<i>You need a Geode in your inventory to use this station.</i>`,
 				{ textColor = Color3.fromRGB(255, 188, 100) }
 			)
 		end
@@ -49,6 +68,10 @@ function GeodeCutter:crackSequence(geodeTool)
 	local Controls = PlayerModule:GetControls()
 
 	if crackingMethodModule then
+		local character = engine.player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid then humanoid:UnequipTools() end
+
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 		engine.PlayerGui.UI.Inventory.Visible = false
 		SpeedManager:setState("crackingGeode", "freeze")

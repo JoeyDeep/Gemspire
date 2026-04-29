@@ -4,6 +4,7 @@ return {
 		description = "A common rock",
 		rarity = 1,
 		color = Color3.fromRGB(177, 177, 177),
+		colorSecondary = Color3.fromRGB(155, 150, 145),
 
 		material_type = "Mineral",
 		craft_luck = 0.005,
@@ -21,6 +22,7 @@ return {
 		description = "A common mineral with a crystalline structure.",
 		rarity = 1,
 		color = Color3.fromRGB(235, 228, 220),
+		colorSecondary = Color3.fromRGB(210, 200, 195),
 
 		material_type = "Mineral",
 		craft_luck = 0.01,
@@ -38,6 +40,7 @@ return {
 		description = "A group of rock-forming minerals that make up a large part of the Earth's crust.",
 		rarity = 1,
 		color = Color3.fromRGB(210, 185, 175),
+		colorSecondary = Color3.fromRGB(190, 160, 145),
 
 		material_type = "Mineral",
 		craft_luck = 0.01,
@@ -55,6 +58,7 @@ return {
 		description = "A common ore that contains iron.",
 		rarity = 1,
 		color = Color3.fromRGB(113, 113, 113),
+		colorSecondary = Color3.fromRGB(90, 80, 75),
 
 		material_type = "Metal",
 		craft_luck = 0.02,
@@ -75,6 +79,7 @@ return {
 		description = "A group of silicate minerals used as abrasives and in jewelry.",
 		rarity = 1,
 		color = Color3.fromRGB(160, 25, 25),
+		colorSecondary = Color3.fromRGB(25, 160, 160),
 
 		material_type = "Gem",
 		craft_luck = 0.02,
@@ -93,6 +98,7 @@ return {
 		description = "A purple variety of quartz often used in jewelry.",
 		rarity = 1,
 		color = Color3.fromRGB(150, 75, 210),
+		colorSecondary = Color3.fromRGB(195, 140, 25),
 
 		material_type = "Gem",
 		craft_luck = 0.025,
@@ -110,6 +116,7 @@ return {
 		description = "A yellow variety of quartz often used in jewelry.",
 		rarity = 1,
 		color = Color3.fromRGB(240, 175, 30),
+		colorSecondary = Color3.fromRGB(30, 95, 240),
 
 		material_type = "Gem",
 		craft_luck = 0.03,
@@ -127,6 +134,7 @@ return {
 		description = "A silicate mineral often used in jewelry.",
 		rarity = 1,
 		color = Color3.fromRGB(100, 175, 255),
+		colorSecondary = Color3.fromRGB(255, 180, 100),
 
 		material_type = "Gem",
 		craft_luck = 0.035,
@@ -144,6 +152,7 @@ return {
 		description = "A rock containing a cavity lined with crystals or other mineral matter.",
 		rarity = 1,
 		color = Color3.fromRGB(145, 125, 105),
+		colorSecondary = Color3.fromRGB(120, 100, 80),
 
 		material_type = "Mineral",
 		craft_luck = 0.02,
@@ -161,6 +170,7 @@ return {
 		description = "A geode that has been cracked open, revealing its inner crystals.",
 		rarity = 1,
 		color = Color3.fromRGB(155, 135, 115),
+		colorSecondary = Color3.fromRGB(130, 110, 90),
 
 		material_type = "Mineral",
 		craft_luck = 0.025,
@@ -178,6 +188,7 @@ return {
 		description = "The remains or impression of a prehistoric organism preserved in petrified form.",
 		rarity = 1,
 		color = Color3.fromRGB(200, 180, 130),
+		colorSecondary = Color3.fromRGB(160, 130, 80),
 
 		material_type = "Mineral",
 		craft_luck = 0.03,
@@ -196,6 +207,7 @@ return {
 		description = "A precious gemstone, typically blue, but can be found in a variety of colors.",
 		rarity = 1,
 		color = Color3.fromRGB(25, 80, 195),
+		colorSecondary = Color3.fromRGB(100, 200, 255),
 
 		material_type = "Gem",
 		craft_luck = 0.04,
@@ -216,6 +228,7 @@ return {
 		description = "A precious gemstone, typically green, known for its rarity and beauty.",
 		rarity = 1,
 		color = Color3.fromRGB(25, 155, 65),
+		colorSecondary = Color3.fromRGB(155, 25, 115),
 
 		material_type = "Gem",
 		craft_luck = 0.05,
@@ -236,6 +249,7 @@ return {
 		description = "A precious gemstone, typically red, known for its hardness and beauty.",
 		rarity = 1,
 		color = Color3.fromRGB(200, 20, 35),
+		colorSecondary = Color3.fromRGB(20, 200, 185),
 
 		material_type = "Gem",
 		craft_luck = 0.06,
@@ -256,6 +270,7 @@ return {
 		description = "A solid fragment of a meteoroid that survives its passage through the atmosphere and lands on Earth.",
 		rarity = 1,
 		color = Color3.fromRGB(55, 50, 60),
+		colorSecondary = Color3.fromRGB(180, 100, 255),
 
 		material_type = "Metal",
 		craft_luck = 0.05,
@@ -273,6 +288,7 @@ return {
 		description = "A group of crystals that have formed together, often found in caves or mines.",
 		rarity = 1,
 		color = Color3.fromRGB(175, 215, 250),
+		colorSecondary = Color3.fromRGB(255, 175, 230),
 
 		material_type = "Gem",
 		craft_luck = 0.06,
@@ -290,6 +306,7 @@ return {
 		description = "A precious metal known for its luster and malleability.",
 		rarity = 1,
 		color = Color3.fromRGB(255, 195, 0),
+		colorSecondary = Color3.fromRGB(255, 100, 0),
 
 		material_type = "Metal",
 		craft_luck = 0.07,
@@ -310,6 +327,7 @@ return {
 		description = "A precious gemstone known for its hardness and brilliance.",
 		rarity = 1,
 		color = Color3.fromRGB(215, 235, 255),
+		colorSecondary = Color3.fromRGB(255, 235, 215),
 
 		material_type = "Gem",
 		craft_luck = 0.08,
@@ -331,6 +349,7 @@ return {
 		description = "A rare and beautiful opal with a star-like pattern.",
 		rarity = 1,
 		color = Color3.fromRGB(255, 115, 75),
+		colorSecondary = Color3.fromRGB(75, 215, 255),
 
 		material_type = "Gem",
 		craft_luck = 0.09,
@@ -348,6 +367,7 @@ return {
 		description = "A type of chalcedony that is dark green with red spots.",
 		rarity = 1,
 		color = Color3.fromRGB(25, 95, 35),
+		colorSecondary = Color3.fromRGB(95, 25, 85),
 
 		material_type = "Gem",
 		craft_luck = 0.1,
@@ -368,6 +388,7 @@ return {
 		description = "A rare gemstone with a unique swirling pattern that resembles a dragon's eye.",
 		rarity = 1,
 		color = Color3.fromRGB(195, 125, 25),
+		colorSecondary = Color3.fromRGB(25, 95, 195),
 
 		material_type = "Gem",
 		craft_luck = 0.11,
@@ -388,6 +409,7 @@ return {
 		description = "A cluster of crystals that refract light into a spectrum of colors.",
 		rarity = 1,
 		color = Color3.fromRGB(150, 195, 220),
+		colorSecondary = Color3.fromRGB(220, 175, 150),
 
 		material_type = "Gem",
 		craft_luck = 0.12,
@@ -409,6 +431,7 @@ return {
 		description = "A rare and powerful diamond said to be formed from the remnants of a fallen star.",
 		rarity = 1,
 		color = Color3.fromRGB(175, 210, 255),
+		colorSecondary = Color3.fromRGB(255, 220, 175),
 
 		material_type = "Gem",
 		craft_luck = 0.14,
@@ -429,6 +452,7 @@ return {
 		description = "A rare and powerful diamond said to be formed from the remnants of a fallen star.", --change me
 		rarity = 1,
 		color = Color3.fromRGB(75, 215, 165),
+		colorSecondary = Color3.fromRGB(215, 75, 125),
 
 		material_type = "Gem",
 		craft_luck = 0.14,
@@ -449,6 +473,7 @@ return {
 		description = "A legendary gemstone said to be the heart of a mountain, imbued with ancient power.",
 		rarity = 1,
 		color = Color3.fromRGB(170, 30, 25),
+		colorSecondary = Color3.fromRGB(25, 165, 170),
 
 		material_type = "Gem",
 		craft_luck = 0.16,
@@ -469,6 +494,7 @@ return {
 		description = "A rare crystal that captures the essence of the sky, shimmering with a celestial glow.",
 		rarity = 1,
 		color = Color3.fromRGB(200, 230, 255),
+		colorSecondary = Color3.fromRGB(255, 225, 200),
 
 		material_type = "Gem",
 		craft_luck = 0.18,
@@ -489,6 +515,7 @@ return {
 		description = "A relic from a long-lost civilization, said to hold the power of fire and rebirth.",
 		rarity = 1,
 		color = Color3.fromRGB(255, 90, 30),
+		colorSecondary = Color3.fromRGB(30, 195, 255),
 
 		material_type = "Gem",
 		craft_luck = 0.2,
@@ -509,6 +536,7 @@ return {
 		description = "A legendary gemstone that once adorned the crown of a great king, symbolizing power and wealth.",
 		rarity = 1,
 		color = Color3.fromRGB(255, 215, 80),
+		colorSecondary = Color3.fromRGB(80, 120, 255),
 
 		material_type = "Gem",
 		craft_luck = 0.25,

@@ -104,6 +104,7 @@ function Pipecutter:start(station, geodeTool)
 		local count, maxCount = 0, 30
 		local lastInputTime = tick()
 		local camShakeStarted = false
+		local done = false
 
 		Pipecutter.inputTrove = Trove.new()
 
@@ -124,14 +125,16 @@ function Pipecutter:start(station, geodeTool)
 		end
 		local function processInput(x, y)
 			local now = tick()
-			count = math.clamp(count + 1, 0, maxCount)
+			count = math.clamp(count + 4, 0, maxCount)
 
 			if count == maxCount then
+				if done then return end
+				done = true
 				particles.RigidDebrisClusters:Emit(2)
 				particles.DustDebris:Emit(5)
 				particles.SmokeClusters:Emit(2)
-				--Sound:playGlobal("FullCrack")
-
+				Sound:playGlobal("FullCrack")
+				engine:get("GeodeAnimations"):fadeToBlack(0.1)
 				Pipecutter:cleanup()
 				returnEvent:Fire(true)
 				return
@@ -263,17 +266,9 @@ function Pipecutter:cleanup()
 		Pipecutter.cameraFovTween:Cancel()
 		Pipecutter.cameraFovTween = nil
 	end
-	-- Stop CameraShaker before switching camera type so it can't
-	-- write to camera.CFrame while the camera module is initializing
 	Pipecutter.inputTrove:Destroy()
 	camera.FieldOfView = 70
-	-- Reset to a safe horizontal CFrame so ClassicCamera doesn't clamp-fail on a steep pitch
-	local hrp = engine.player.Character and engine.player.Character:FindFirstChild("HumanoidRootPart")
-	if hrp then
-		camera.CFrame = CFrame.lookAt(hrp.Position + Vector3.new(0, 2, 8), hrp.Position + Vector3.new(0, 1, 0))
-	end
-	camera.CameraSubject = engine.player.Character:WaitForChild("Humanoid")
-	camera.CameraType = Enum.CameraType.Custom
+	-- Leave camera Scriptable so GeodeService can tween from this position
 	for basePart, transparency in pairs(Pipecutter.transparencyCache) do
 		basePart.Transparency = transparency
 	end
