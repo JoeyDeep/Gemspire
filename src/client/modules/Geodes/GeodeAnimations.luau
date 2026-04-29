@@ -48,15 +48,31 @@ end
 
 
 function GeodeAnimations:loadGeodeHalvesInto(parent, anchorCFrame, geodeTemplate, color)
+	local geodeModel = Instance.new("Model")
+	geodeModel.Name  = "Geode"
+
+	-- Invisible anchor at the crack center so GetPivot() is always consistent
+	local anchor          = Instance.new("Part")
+	anchor.Name           = "Anchor"
+	anchor.Size           = Vector3.new(0.01, 0.01, 0.01)
+	anchor.Transparency   = 1
+	anchor.Anchored       = true
+	anchor.CanCollide     = false
+	anchor.CastShadow     = false
+	anchor.CFrame         = anchorCFrame
+	anchor.Parent         = geodeModel
+	geodeModel.PrimaryPart = anchor
+
 	local halfA = geodeTemplate:Clone()
 	local halfB = geodeTemplate:Clone()
 	self:colorGeodeModel(halfA, color)
 	self:colorGeodeModel(halfB, color)
 	halfA:PivotTo(anchorCFrame * CFrame.Angles(0, 0, math.rad(-90)))
 	halfB:PivotTo(anchorCFrame * CFrame.Angles(0, 0, math.rad(90)))
-	halfA.Parent = parent
-	halfB.Parent = parent
-	return halfA, halfB
+	halfA.Parent      = geodeModel
+	halfB.Parent      = geodeModel
+	geodeModel.Parent = parent
+	return geodeModel, halfA, halfB
 end
 
 -- ─── Crack animation ─────────────────────────────────────────────────────────
@@ -149,50 +165,40 @@ local SLOT_SPACING = 5.5
 local SLOT_Y       = -12
 local SLOT_Z       = -36
 
-function GeodeAnimations:moveToViewportSlot(halfA, halfB, effect, slotIndex, totalCount, QuickTween)
+function GeodeAnimations:moveToViewportSlot(geodeModel, effect, slotIndex, totalCount, QuickTween)
 	if effect and effect.Parent then effect:Destroy() end
 
-	local slotX  = (slotIndex - (totalCount - 1) / 2) * SLOT_SPACING
-	local slotCF = CFrame.new(slotX, SLOT_Y, SLOT_Z)
-	local offset = 0.9
-	local targetA = slotCF * CFrame.new(-offset, 0, 0) * CFrame.Angles(0, math.rad(-30), 0) * CFrame.Angles(0, 0, math.rad(-90))
-	local targetB = slotCF * CFrame.new( offset, 0, 0) * CFrame.Angles(0, math.rad( 30), 0) * CFrame.Angles(0, 0, math.rad( 90))
+	local slotX    = (slotIndex - (totalCount - 1) / 2) * SLOT_SPACING
+	local targetCF = CFrame.new(slotX, SLOT_Y, SLOT_Z)
 
-	local aCFVal = Instance.new("CFrameValue")
-	local bCFVal = Instance.new("CFrameValue")
-	aCFVal.Value = halfA:GetPivot()
-	bCFVal.Value = halfB:GetPivot()
+	local cfVal = Instance.new("CFrameValue")
+	cfVal.Value = geodeModel:GetPivot()
 
-	local connA = aCFVal:GetPropertyChangedSignal("Value"):Connect(function() halfA:PivotTo(aCFVal.Value) end)
-	local connB = bCFVal:GetPropertyChangedSignal("Value"):Connect(function() halfB:PivotTo(bCFVal.Value) end)
+	local conn = cfVal:GetPropertyChangedSignal("Value"):Connect(function()
+		geodeModel:PivotTo(cfVal.Value)
+	end)
 
-	QuickTween(aCFVal, 0.4, { Value = targetA })
-	QuickTween(bCFVal, 0.4, { Value = targetB }).Completed:Wait()
+	QuickTween(cfVal, 0.4, { Value = targetCF }).Completed:Wait()
 
-	connA:Disconnect()
-	connB:Disconnect()
-	aCFVal:Destroy()
-	bCFVal:Destroy()
+	conn:Disconnect()
+	cfVal:Destroy()
 end
 
 
 function GeodeAnimations:clearRack(rackEntries, QuickTween)
 	if #rackEntries == 0 then return end
 	for _, e in pairs(rackEntries) do
-		for _, m in pairs({ e.halfA, e.halfB }) do
-			if m and m.Parent then
-				for _, part in pairs(m:GetDescendants()) do
-					if part:IsA("BasePart") then
-						QuickTween(part, 0.2, { Transparency = 1 })
-					end
+		if e.geode and e.geode.Parent then
+			for _, part in pairs(e.geode:GetDescendants()) do
+				if part:IsA("BasePart") then
+					QuickTween(part, 0.2, { Transparency = 1 })
 				end
 			end
 		end
 	end
 	task.wait(0.3)
 	for _, e in pairs(rackEntries) do
-		if e.halfA and e.halfA.Parent then e.halfA:Destroy() end
-		if e.halfB and e.halfB.Parent then e.halfB:Destroy() end
+		if e.geode and e.geode.Parent then e.geode:Destroy() end
 	end
 end
 

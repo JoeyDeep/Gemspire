@@ -1,7 +1,8 @@
 local ViewportFrameEffects = {}
 
-local TweenService = game:GetService("TweenService")
-local RunService   = game:GetService("RunService")
+local TweenService    = game:GetService("TweenService")
+local RunService      = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local function tween(instance, duration, props, style, direction)
 	local t = TweenService:Create(
@@ -11,6 +12,138 @@ local function tween(instance, duration, props, style, direction)
 	)
 	t:Play()
 	return t
+end
+
+-- Clones a model, scales all parts outward from the model's pivot, colors them
+-- Neon, and parents the clone inside the original so it follows and is destroyed
+-- with it. Transparent parts (e.g. the Anchor) are left as-is.
+--
+-- The push direction is recomputed every Heartbeat based on the actual camera→model
+-- vector so the outline stays behind the original regardless of viewing angle.
+-- Only the delta between old and new push is applied each frame, since PivotTo
+-- already moves all descendant parts (including the clone) as a unit.
+function ViewportFrameEffects.outlineByClone(model, color, camera)
+	local Z_BACK = 3.0
+	local SCALE  = 1.06 * (14 + Z_BACK) / 14  -- compensates perspective reduction
+
+	local outline = model:Clone()
+	local pivotCF = model:GetPivot()
+
+	local cloneParts = {}
+	for _, part in pairs(outline:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local localCF = pivotCF:ToObjectSpace(part.CFrame)
+			part.CFrame   = pivotCF:ToWorldSpace(
+				CFrame.new(localCF.Position * SCALE) * localCF.Rotation
+			)
+			part.Size       = part.Size * SCALE
+			part.CastShadow = false
+			if part.Transparency < 1 then
+				part.Color        = color
+				part.Material     = Enum.Material.Neon
+				part.Transparency = 1
+			end
+			table.insert(cloneParts, part)
+		end
+	end
+
+	outline.Name   = "Outline"
+	outline.Parent = model
+
+	for _, part in pairs(cloneParts) do
+		if part.Material == Enum.Material.Neon then
+			tween(part, 0.4, { Transparency = 0 }, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		end
+	end
+
+	local lastPush = Vector3.zero
+
+	local heartbeatConn
+	heartbeatConn = RunService.Heartbeat:Connect(function()
+		if not model.Parent then
+			heartbeatConn:Disconnect()
+			return
+		end
+		local dir = model:GetPivot().Position - camera.CFrame.Position
+		if dir.Magnitude < 0.001 then return end
+		local newPush = dir.Unit * Z_BACK
+		local delta   = newPush - lastPush
+		if delta.Magnitude < 0.001 then return end
+		lastPush = newPush
+		for _, part in pairs(cloneParts) do
+			if part.Parent then
+				part.CFrame = part.CFrame + delta
+			end
+		end
+	end)
+
+	model.Destroying:Connect(function()
+		heartbeatConn:Disconnect()
+	end)
+end
+
+-- Creates an invisible hover/tap button that shows a TextLabel popup directly
+-- above it. The popup is dismissed on MouseLeave, any tap outside the button,
+-- or when the button itself is destroyed.
+-- Returns the TextButton so the caller can position or destroy it.
+function ViewportFrameEffects.hoverLabel(parent, position, size, text)
+	local btn = Instance.new("TextButton")
+	btn.Text               = ""
+	btn.BackgroundTransparency = 1
+	btn.Size               = size
+	btn.Position           = position
+	btn.AnchorPoint        = Vector2.new(0.5, 0.5)
+	btn.ZIndex             = 3
+	btn.Parent             = parent
+
+	local popup    = nil
+	local inputConn = nil
+
+	local function hidePopup()
+		if inputConn then inputConn:Disconnect() inputConn = nil end
+		if popup and popup.Parent then popup:Destroy() end
+		popup = nil
+	end
+
+	local function showPopup()
+		if popup then return end
+
+		local label = Instance.new("TextLabel")
+		label.Name               = "HoverLabelPopup"
+		label.RichText           = true
+		label.Text               = text
+		label.TextColor3         = Color3.new(1, 1, 1)
+		label.BackgroundTransparency = 1
+		label.Size               = UDim2.new(size.X.Scale, math.max(size.X.Offset, 300), 0, 40)
+		label.AnchorPoint        = Vector2.new(0.5, 1)
+		label.Position           = UDim2.new(
+			position.X.Scale, position.X.Offset,
+			position.Y.Scale, position.Y.Offset - size.Y.Offset / 2 - 6)
+		label.ZIndex             = 4
+		label.Parent             = parent
+		popup = label
+
+		inputConn = UserInputService.InputBegan:Connect(function(input)
+			local t = input.UserInputType
+			if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+				local p   = input.Position
+				local abs = btn.AbsolutePosition
+				local sz  = btn.AbsoluteSize
+				if p.X < abs.X or p.X > abs.X + sz.X or p.Y < abs.Y or p.Y > abs.Y + sz.Y then
+					hidePopup()
+				end
+			end
+		end)
+	end
+
+	btn.MouseEnter:Connect(showPopup)
+	btn.MouseLeave:Connect(hidePopup)
+	btn.Activated:Connect(function()
+		if popup then hidePopup() else showPopup() end
+	end)
+	btn.Destroying:Connect(hidePopup)
+
+	return btn
 end
 
 -- Spawns a burst of neon sparks from a position inside a WorldModel.
@@ -219,6 +352,146 @@ function ViewportFrameEffects.startSparkle(halfA, halfB)
 		end)
 	end
 	return function() active = false end
+end
+
+-- Orbits a neon ball with a trailing cylinder around the model's pivot.
+-- The orbit plane is parallel to the camera's view plane (uses camera right/up
+-- vectors), so it always faces the viewer regardless of where the model is.
+-- The ball and trail are parented to the model so they move with PivotTo
+-- and are destroyed when the model is destroyed.
+-- Returns a stop function.
+--
+-- config fields:
+--   camera     Camera   viewport camera (required for camera-plane orbit)
+--   radius     number   orbit radius in studs (default 4)
+--   color      Color3   ball and trail color (default white)
+--   speed      number   radians per second (default 1)
+--   pattern    string   "smooth" (default) | "shaky" | "oscillate" | "spiral"
+--   jitter     number   shaky: max offset per axis in studs (default 0.3)
+--   amplitude  number   oscillate: peak along camera up axis in studs (default 1.5)
+--   range      number   spiral: radius variance in studs (default 1.0)
+--   freq       number   spiral: oscillation frequency in Hz (default 2)
+--   initialAngle number  starting angle in radians (default 0)
+function ViewportFrameEffects.customOrbit(model, config)
+	local camera  = config.camera
+	local radius  = config.radius or 4
+	local color   = config.color  or Color3.new(1, 1, 1)
+	local speed   = config.speed  or 1
+	local pattern = config.pattern or "smooth"
+
+	-- Pattern helpers — each returns a (angle, elapsed, right, up) -> Vector3 function.
+	-- Shaky uses multi-frequency sine waves per axis so the path is continuous (no
+	-- teleporting) but erratic; harmonic overtones give it a sharp zigzag feel.
+	local function makeSmooth()
+		return function() return Vector3.zero end
+	end
+
+	local function makeShaky(jitter)
+		return function(_, elapsed)
+			local x = math.sin(elapsed * 8.0)       + 0.4 * math.sin(elapsed * 13.0)
+			local y = math.sin(elapsed * 7.0 + 1.5) + 0.4 * math.sin(elapsed * 11.0 + 0.7)
+			local z = math.sin(elapsed * 6.0 + 3.0) + 0.4 * math.sin(elapsed *  9.0 + 1.2)
+			return Vector3.new(x, y, z) * (jitter / 1.4)
+		end
+	end
+
+	local function makeOscillate(amplitude)
+		return function(angle, _, _, up)
+			return up * math.sin(angle * 2) * amplitude
+		end
+	end
+
+	local function makeSpiral(range, freq)
+		return function(angle, elapsed, right, up)
+			local extra = math.sin(elapsed * freq) * range
+			return right * math.cos(angle) * extra + up * math.sin(angle) * extra
+		end
+	end
+
+	local patternFn
+	if pattern == "shaky" then
+		patternFn = makeShaky(config.jitter or 0.3)
+	elseif pattern == "oscillate" then
+		patternFn = makeOscillate(config.amplitude or 1.5)
+	elseif pattern == "spiral" then
+		patternFn = makeSpiral(config.range or 1.0, config.freq or 2)
+	else
+		patternFn = makeSmooth()
+	end
+
+	local BALL_SIZE    = 0.3
+	local GHOST_LIFE   = 0.8  -- seconds for ghost to shrink and fade
+	local GHOST_RATE   = 0.04 -- seconds between ghost spawns
+
+	local ball = Instance.new("Part")
+	ball.Shape        = Enum.PartType.Ball
+	ball.Size         = Vector3.new(BALL_SIZE, BALL_SIZE, BALL_SIZE)
+	ball.Material     = Enum.Material.Neon
+	ball.Color        = color
+	ball.Transparency = 0
+	ball.Anchored     = true
+	ball.CanCollide   = false
+	ball.CastShadow   = false
+	ball.CFrame       = model:GetPivot()
+	ball.Parent       = model
+
+	local active      = true
+	local angle       = config.initialAngle or 0
+	local elapsed     = 0
+	local ghostTimer  = 0
+
+	model.Destroying:Connect(function() active = false end)
+
+	local conn
+	conn = RunService.Heartbeat:Connect(function(dt)
+		if not active or not model.Parent then
+			conn:Disconnect()
+			if ball.Parent then ball:Destroy() end
+			return
+		end
+
+		angle      = angle     + speed * dt
+		elapsed    = elapsed   + dt
+		ghostTimer = ghostTimer + dt
+
+		local camCF = camera and camera.CFrame or CFrame.new()
+		local right = camCF.RightVector
+		local up    = camCF.UpVector
+		local pivot = model:GetPivot().Position
+
+		local basePos = pivot + right * math.cos(angle) * radius + up * math.sin(angle) * radius
+		local pos     = basePos + patternFn(angle, elapsed, right, up)
+
+		ball.CFrame = CFrame.new(pos)
+
+		if ghostTimer >= GHOST_RATE then
+			ghostTimer = 0
+			local ghost = Instance.new("Part")
+			ghost.Shape        = Enum.PartType.Ball
+			ghost.Size         = Vector3.new(BALL_SIZE, BALL_SIZE, BALL_SIZE)
+			ghost.Material     = Enum.Material.Neon
+			ghost.Color        = color
+			ghost.Transparency = 0
+			ghost.Anchored     = true
+			ghost.CanCollide   = false
+			ghost.CastShadow   = false
+			ghost.CFrame       = CFrame.new(pos)
+			ghost.Parent       = model
+
+			local tiny = Vector3.new(0.001, 0.001, 0.001)
+			tween(ghost, GHOST_LIFE, { Size = tiny, Transparency = 1 },
+				Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+				.Completed:Connect(function()
+					if ghost.Parent then ghost:Destroy() end
+				end)
+		end
+	end)
+
+	return function()
+		active = false
+		conn:Disconnect()
+		if ball.Parent then ball:Destroy() end
+	end
 end
 
 return ViewportFrameEffects

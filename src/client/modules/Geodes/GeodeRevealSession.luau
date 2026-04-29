@@ -12,6 +12,12 @@ local DEFAULT_LIGHT_COLOR     = Color3.fromRGB(140, 140, 140)
 local DEFAULT_LIGHT_DIRECTION = Vector3.new(-1, -1, -1)
 local DEFAULT_AMBIENT         = Color3.fromRGB(200, 200, 200)
 
+local RARITY_ORB_COLORS = {
+	[2] = Color3.fromRGB(80,  140, 255), -- uncommon: blue
+	[3] = Color3.fromRGB(160, 60,  255), -- rare: purple
+	[4] = Color3.fromRGB(255, 68, 0),  -- legendary: orange
+}
+
 local TRAIT_DISPLAY = {
 	none    = { name = "No Trait", color = Color3.fromRGB(180, 180, 180) },
 	ancient = { name = "Ancient",  color = Color3.fromRGB(80,  160, 255) },
@@ -38,17 +44,18 @@ function GeodeRevealSession.new(engine, results)
 	self.GeodeAnimations = engine:get("GeodeAnimations")
 	self.GeodeContents   = engine:get("GeodeContents")
 	self.Loot            = engine:get("Loot")
+	self.LootTraits      = engine:get("LootTraits")
 	self.UI              = engine.PlayerGui.UI.GeodeReveal
 	self.player          = engine.player
 	self.geodeTemplate   = ReplicatedStorage.Storage.Geode.Geode
 	self.particlesFolder = ReplicatedStorage.Storage.Particles
 	-- mutable session state
-	self.worldModel   = nil
-	self.viewport     = nil
-	self.humSound     = nil
-	self.slotIndex    = 0
-	self.rackEntries  = {}
-	self.activeGeode  = nil
+	self.worldModel        = nil
+	self.viewport          = nil
+	self.humSound          = nil
+	self.slotIndex         = 0
+	self.rackEntries       = {}
+	self.activeGeode       = nil
 	self._stopRays    = nil
 	self._stopLight   = nil
 	self._stopStreamer = nil
@@ -94,6 +101,7 @@ end
 
 function GeodeRevealSession:_teardown()
 	local GA = self.GeodeAnimations
+	self:_destroyOverlayButtons()
 	GA:clearRack(self.rackEntries, self.QuickTween)
 	if self.worldModel then
 		for _, child in pairs(self.worldModel:GetChildren()) do child:Destroy() end
@@ -137,21 +145,21 @@ function GeodeRevealSession:_presentGeode(i, entry)
 	self.UI.LootLabel.Visible      = false
 	self.UI.ContinueButton.Visible = false
 
-	local halfA, halfB = self:_loadGeode(geodeColor, colorSecondary)
-	local effect       = self:_loadEffect(entry)
+	local geodeModel, halfA, halfB = self:_loadGeode(geodeColor, colorSecondary)
+	local effect                   = self:_loadEffect(entry)
 
 	self:_crack(halfA, halfB, i == 1, TRAIT_SOUNDS[trait] or TRAIT_SOUNDS.none, geodeColor)
-	self:_startEffects(halfA, halfB, geodeColor)
+	self:_startEffects(halfA, halfB, geodeModel, geodeColor, entry)
 	self:_showLabel(entry, i, trait, traitDisplay)
 
-	self.activeGeode = { halfA = halfA, halfB = halfB, effect = effect, countInPage = countInPage }
+	self.activeGeode = { geodeModel = geodeModel, halfA = halfA, halfB = halfB, effect = effect, countInPage = countInPage, entry = entry }
 end
 
 function GeodeRevealSession:_dismissGeode(i)
 	local ag = self.activeGeode
 	self.activeGeode = nil
 	self:_stopEffects()
-	self:_sendToSlot(ag.halfA, ag.halfB, ag.effect, ag.countInPage)
+	self:_sendToSlot(ag.geodeModel, ag.effect, ag.countInPage, ag.entry)
 	self:_clearPageIfFull(i)
 
 	if i < #self.results then
@@ -162,7 +170,7 @@ end
 -- ─── Step helpers ────────────────────────────────────────────────────────────
 
 function GeodeRevealSession:_loadGeode(geodeColor, colorSecondary)
-	local halfA, halfB = self.GeodeAnimations:loadGeodeHalvesInto(
+	local geodeModel, halfA, halfB = self.GeodeAnimations:loadGeodeHalvesInto(
 		self.worldModel, ANCHOR_CF, self.geodeTemplate, geodeColor)
 	for _, half in pairs({ halfA, halfB }) do
 		local innerShell = half:FindFirstChild("InnerShell", true)
@@ -170,7 +178,7 @@ function GeodeRevealSession:_loadGeode(geodeColor, colorSecondary)
 			innerShell.Color = colorSecondary
 		end
 	end
-	return halfA, halfB
+	return geodeModel, halfA, halfB
 end
 
 function GeodeRevealSession:_loadEffect(entry)
@@ -239,24 +247,72 @@ function GeodeRevealSession:_waitForClick()
 	charConn:Disconnect()
 end
 
-function GeodeRevealSession:_sendToSlot(halfA, halfB, effect, countInPage)
+function GeodeRevealSession:_sendToSlot(geodeModel, effect, countInPage, entry)
 	self.GeodeAnimations:moveToViewportSlot(
-		halfA, halfB, effect, self.slotIndex, countInPage, self.QuickTween)
-	table.insert(self.rackEntries, { halfA = halfA, halfB = halfB })
+		geodeModel, effect, self.slotIndex, countInPage, self.QuickTween)
+	local button = self:_createOverlayButton(geodeModel, entry)
+	table.insert(self.rackEntries, { geode = geodeModel, button = button })
 	self.slotIndex += 1
 end
 
 function GeodeRevealSession:_clearPageIfFull(i)
 	if self.slotIndex >= MAX_RACK and i < #self.results then
+		self:_destroyOverlayButtons()
 		self.GeodeAnimations:clearRack(self.rackEntries, self.QuickTween)
 		self.rackEntries = {}
 		self.slotIndex   = 0
 	end
 end
 
+function GeodeRevealSession:_destroyOverlayButtons()
+	for _, e in pairs(self.rackEntries) do
+		if e.button and e.button.Parent then e.button:Destroy() end
+	end
+end
+
+-- ─── Rack overlay ────────────────────────────────────────────────────────────
+
+function GeodeRevealSession:_projectToScale(worldPos)
+	local cam     = self.viewport.CurrentCamera
+	local vpSize  = self.viewport.AbsoluteSize
+	local aspect  = vpSize.X / vpSize.Y
+	local localPos = cam.CFrame:PointToObjectSpace(worldPos)
+	local depth    = -localPos.Z
+	if depth <= 0 then return 0.5, 0.5 end
+	local halfTan = math.tan(math.rad(cam.FieldOfView / 2))
+	local u = ( localPos.X / (depth * halfTan * aspect) + 1) / 2
+	local v = (-localPos.Y / (depth * halfTan)           + 1) / 2
+	return u, v
+end
+
+function GeodeRevealSession:_buildLabelText(entry)
+	local trait        = entry.trait or "none"
+	local traitDisplay = TRAIT_DISPLAY[trait] or TRAIT_DISPLAY["none"]
+	local contentName  = (self.Loot[entry.contentKey] and self.Loot[entry.contentKey].name)
+		or entry.contentKey or "Unknown"
+	if trait ~= "none" then
+		return string.format(
+			'<font color="#%s">%s</font><font color="#FFFFFF"> %s Geode</font>',
+			toHex(traitDisplay.color), traitDisplay.name, contentName)
+	else
+		return string.format('<font color="#FFFFFF">%s Geode</font>', contentName)
+	end
+end
+
+function GeodeRevealSession:_createOverlayButton(geodeModel, entry)
+	local centerPos = geodeModel:GetPivot().Position
+	local u, v      = self:_projectToScale(centerPos)
+	return ViewportFrameEffects.hoverLabel(
+		self.UI,
+		UDim2.fromScale(u, v),
+		UDim2.fromOffset(90, 70),
+		self:_buildLabelText(entry)
+	)
+end
+
 -- ─── Effect managers ─────────────────────────────────────────────────────────
 
-function GeodeRevealSession:_startEffects(halfA, halfB, color)
+function GeodeRevealSession:_startEffects(halfA, halfB, geodeModel, color, entry)
 	self._stopRays    = self:_startRays()
 	self._stopLight   = self:_startViewportLight(color)
 	self._stopStreamer = ViewportFrameEffects.startStreamer(self.worldModel, {
@@ -271,6 +327,25 @@ function GeodeRevealSession:_startEffects(halfA, halfB, color)
 		duration         = 1.2,
 	})
 	self._stopSparkle = ViewportFrameEffects.startSparkle(halfA, halfB)
+
+	local lootData = entry and self.Loot[entry.contentKey]
+	local orbColor = lootData and RARITY_ORB_COLORS[lootData.rarity]
+	if orbColor then
+		ViewportFrameEffects.outlineByClone(geodeModel, orbColor, self.viewport.CurrentCamera)
+	end
+
+	local traitData = self.LootTraits and self.LootTraits[entry.trait or ""]
+	if traitData and traitData.orbitVisual then
+		local ov = traitData.orbitVisual
+		local n  = ov.numberOfOrbits or 1
+		for i = 1, n do
+			local cfg = {}
+			for k, v in pairs(ov.orbitConfig) do cfg[k] = v end
+			cfg.initialAngle = (2 * math.pi * (i - 1)) / n
+			cfg.camera       = self.viewport.CurrentCamera
+			ViewportFrameEffects.customOrbit(geodeModel, cfg)
+		end
+	end
 end
 
 function GeodeRevealSession:_stopEffects()

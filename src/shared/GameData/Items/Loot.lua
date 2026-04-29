@@ -205,7 +205,7 @@ return {
 	sapphire = {
 		name = "Sapphire",
 		description = "A precious gemstone, typically blue, but can be found in a variety of colors.",
-		rarity = 1,
+		rarity = 2,
 		color = Color3.fromRGB(25, 80, 195),
 		colorSecondary = Color3.fromRGB(100, 200, 255),
 
@@ -226,7 +226,7 @@ return {
 	emerald = {
 		name = "Emerald",
 		description = "A precious gemstone, typically green, known for its rarity and beauty.",
-		rarity = 1,
+		rarity = 2,
 		color = Color3.fromRGB(25, 155, 65),
 		colorSecondary = Color3.fromRGB(155, 25, 115),
 
@@ -247,7 +247,7 @@ return {
 	ruby = {
 		name = "Ruby",
 		description = "A precious gemstone, typically red, known for its hardness and beauty.",
-		rarity = 1,
+		rarity = 2,
 		color = Color3.fromRGB(200, 20, 35),
 		colorSecondary = Color3.fromRGB(20, 200, 185),
 
@@ -268,7 +268,7 @@ return {
 	meteorite = {
 		name = "Meteorite",
 		description = "A solid fragment of a meteoroid that survives its passage through the atmosphere and lands on Earth.",
-		rarity = 1,
+		rarity = 2,
 		color = Color3.fromRGB(55, 50, 60),
 		colorSecondary = Color3.fromRGB(180, 100, 255),
 
@@ -286,7 +286,7 @@ return {
 	crystal_clusters = {
 		name = "Crystal Clusters",
 		description = "A group of crystals that have formed together, often found in caves or mines.",
-		rarity = 1,
+		rarity = 2,
 		color = Color3.fromRGB(175, 215, 250),
 		colorSecondary = Color3.fromRGB(255, 175, 230),
 
@@ -304,7 +304,7 @@ return {
 	gold = {
 		name = "Gold",
 		description = "A precious metal known for its luster and malleability.",
-		rarity = 1,
+		rarity = 2,
 		color = Color3.fromRGB(255, 195, 0),
 		colorSecondary = Color3.fromRGB(255, 100, 0),
 
@@ -325,7 +325,7 @@ return {
 	diamond = {
 		name = "Diamond",
 		description = "A precious gemstone known for its hardness and brilliance.",
-		rarity = 1,
+		rarity = 3,
 		color = Color3.fromRGB(215, 235, 255),
 		colorSecondary = Color3.fromRGB(255, 235, 215),
 
@@ -347,7 +347,7 @@ return {
 	starfire_opal = {
 		name = "Starfire Opal",
 		description = "A rare and beautiful opal with a star-like pattern.",
-		rarity = 1,
+		rarity = 3,
 		color = Color3.fromRGB(255, 115, 75),
 		colorSecondary = Color3.fromRGB(75, 215, 255),
 
@@ -365,7 +365,7 @@ return {
 	bloodstone = {
 		name = "Bloodstone",
 		description = "A type of chalcedony that is dark green with red spots.",
-		rarity = 1,
+		rarity = 3,
 		color = Color3.fromRGB(25, 95, 35),
 		colorSecondary = Color3.fromRGB(95, 25, 85),
 
@@ -386,7 +386,7 @@ return {
 	dragons_eye = {
 		name = "Dragon's Eye",
 		description = "A rare gemstone with a unique swirling pattern that resembles a dragon's eye.",
-		rarity = 1,
+		rarity = 3,
 		color = Color3.fromRGB(195, 125, 25),
 		colorSecondary = Color3.fromRGB(25, 95, 195),
 
@@ -407,7 +407,7 @@ return {
 	prism_cluster = {
 		name = "Prism Cluster",
 		description = "A cluster of crystals that refract light into a spectrum of colors.",
-		rarity = 1,
+		rarity = 3,
 		color = Color3.fromRGB(150, 195, 220),
 		colorSecondary = Color3.fromRGB(220, 175, 150),
 
@@ -429,7 +429,7 @@ return {
 	celestial_diamond = {
 		name = "Celestial Diamond",
 		description = "A rare and powerful diamond said to be formed from the remnants of a fallen star.",
-		rarity = 1,
+		rarity = 3,
 		color = Color3.fromRGB(175, 210, 255),
 		colorSecondary = Color3.fromRGB(255, 220, 175),
 
@@ -450,7 +450,7 @@ return {
 	auroraShard = {
 		name = "Aurora Shard",
 		description = "A rare and powerful diamond said to be formed from the remnants of a fallen star.", --change me
-		rarity = 1,
+		rarity = 3,
 		color = Color3.fromRGB(75, 215, 165),
 		colorSecondary = Color3.fromRGB(215, 75, 125),
 
@@ -471,7 +471,7 @@ return {
 	heart_of_mountain = {
 		name = "Heart of the Mountain",
 		description = "A legendary gemstone said to be the heart of a mountain, imbued with ancient power.",
-		rarity = 1,
+		rarity = 4,
 		color = Color3.fromRGB(170, 30, 25),
 		colorSecondary = Color3.fromRGB(25, 165, 170),
 
@@ -492,7 +492,7 @@ return {
 	skyglass_crystal = {
 		name = "Skyglass Crystal",
 		description = "A rare crystal that captures the essence of the sky, shimmering with a celestial glow.",
-		rarity = 1,
+		rarity = 4,
 		color = Color3.fromRGB(200, 230, 255),
 		colorSecondary = Color3.fromRGB(255, 225, 200),
 
@@ -513,7 +513,7 @@ return {
 	ember_relic = {
 		name = "Ember Relic",
 		description = "A relic from a long-lost civilization, said to hold the power of fire and rebirth.",
-		rarity = 1,
+		rarity = 4,
 		color = Color3.fromRGB(255, 90, 30),
 		colorSecondary = Color3.fromRGB(30, 195, 255),
 
@@ -534,7 +534,7 @@ return {
 	crown_jewel = {
 		name = "Crown Jewel",
 		description = "A legendary gemstone that once adorned the crown of a great king, symbolizing power and wealth.",
-		rarity = 1,
+		rarity = 4,
 		color = Color3.fromRGB(255, 215, 80),
 		colorSecondary = Color3.fromRGB(80, 120, 255),
 
