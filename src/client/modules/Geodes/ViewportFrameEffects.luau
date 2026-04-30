@@ -24,7 +24,7 @@ end
 -- already moves all descendant parts (including the clone) as a unit.
 function ViewportFrameEffects.outlineByClone(model, color, camera)
 	local Z_BACK = 3.0
-	local SCALE  = 1.06 * (14 + Z_BACK) / 14  -- compensates perspective reduction
+	local SCALE  = 1.04 * (14 + Z_BACK) / 14  -- compensates perspective reduction
 
 	local outline = model:Clone()
 	local pivotCF = model:GetPivot()

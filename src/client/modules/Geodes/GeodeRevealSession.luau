@@ -5,8 +5,10 @@ local ViewportFrameEffects = require(script.Parent.ViewportFrameEffects)
 local GeodeRevealSession = {}
 GeodeRevealSession.__index = GeodeRevealSession
 
-local MAX_RACK  = 15
-local ANCHOR_CF = CFrame.new(0, 1.5, 0)
+local MAX_RACK           = 15
+local ANCHOR_CF          = CFrame.new(0, 1.5, 0)
+local CRACK_SPEED_STEP   = 0.1
+local MAX_CRACK_SPEED    = 5.0
 
 local DEFAULT_LIGHT_COLOR     = Color3.fromRGB(140, 140, 140)
 local DEFAULT_LIGHT_DIRECTION = Vector3.new(-1, -1, -1)
@@ -28,6 +30,16 @@ local TRAIT_SOUNDS = {
 	ancient = "RevealAncient",
 	cursed  = "RevealCursed",
 }
+
+local function colorGeodeParts(halves, partName, color)
+	for _, half in pairs(halves) do
+		for _, part in pairs(half:GetDescendants()) do
+			if part:IsA("BasePart") and part.Name == partName then
+				part.Color = color
+			end
+		end
+	end
+end
 
 local function toHex(c)
 	return string.format("%02X%02X%02X",
@@ -60,6 +72,8 @@ function GeodeRevealSession.new(engine, results)
 	self._stopLight   = nil
 	self._stopStreamer = nil
 	self._stopSparkle  = nil
+	self._autoMode    = nil
+	self._crackSpeed  = 1.0
 	return self
 end
 
@@ -76,6 +90,7 @@ function GeodeRevealSession:run()
 		self:_presentGeode(i, entry)
 		self:_waitForClick()
 		self:_dismissGeode(i)
+		self:_checkAutoModeStopping(i)
 	end
 	self:_teardown()
 end
@@ -97,6 +112,13 @@ function GeodeRevealSession:_setup()
 	if self.humSound then
 		self.QuickTween(self.humSound, 0.6, { Volume = 1 })
 	end
+
+	self.UI.CrackBunchButton.Activated:Connect(function()
+		self._autoMode = "bunch"
+	end)
+	self.UI.CrackAllButton.Activated:Connect(function()
+		self._autoMode = "all"
+	end)
 end
 
 function GeodeRevealSession:_teardown()
@@ -107,8 +129,10 @@ function GeodeRevealSession:_teardown()
 		for _, child in pairs(self.worldModel:GetChildren()) do child:Destroy() end
 	end
 
-	self.UI.ContinueButton.Visible = false
-	self.UI.LootLabel.Visible      = false
+	self.UI.ContinueButton.Visible    = false
+	self.UI.CrackBunchButton.Visible  = false
+	self.UI.CrackAllButton.Visible    = false
+	self.UI.LootLabel.Visible         = false
 
 	if self.humSound and self.humSound.Parent then
 		self.QuickTween(self.humSound, 0.4, { Volume = 0 }).Completed:Wait()
@@ -142,15 +166,30 @@ function GeodeRevealSession:_presentGeode(i, entry)
 	local pageStart   = math.floor((i - 1) / MAX_RACK) * MAX_RACK
 	local countInPage = math.min(#self.results - pageStart, MAX_RACK)
 
-	self.UI.LootLabel.Visible      = false
-	self.UI.ContinueButton.Visible = false
+	self.UI.LootLabel.Visible         = false
+	self.UI.ContinueButton.Visible    = false
+	self.UI.CrackBunchButton.Visible  = false
+	self.UI.CrackAllButton.Visible    = false
 
 	local geodeModel, halfA, halfB = self:_loadGeode(geodeColor, colorSecondary)
 	local effect                   = self:_loadEffect(entry)
 
-	self:_crack(halfA, halfB, i == 1, TRAIT_SOUNDS[trait] or TRAIT_SOUNDS.none, geodeColor)
+	local lootData = self.Loot[entry.contentKey]
+	if lootData and lootData.rarity >= 3 then
+		colorGeodeParts({ halfA, halfB }, "BigCrystal", colorSecondary)
+	end
+	if lootData and lootData.rarity >= 4 then
+		colorGeodeParts({ halfA, halfB }, "Part", colorSecondary)
+	end
+
+	if self._autoMode then
+		self:_showLabel(entry, i, trait, traitDisplay)
+		self:_crack(halfA, halfB, i == 1, TRAIT_SOUNDS[trait] or TRAIT_SOUNDS.none, geodeColor)
+	else
+		self:_crack(halfA, halfB, i == 1, TRAIT_SOUNDS[trait] or TRAIT_SOUNDS.none, geodeColor)
+		self:_showLabel(entry, i, trait, traitDisplay)
+	end
 	self:_startEffects(halfA, halfB, geodeModel, geodeColor, entry)
-	self:_showLabel(entry, i, trait, traitDisplay)
 
 	self.activeGeode = { geodeModel = geodeModel, halfA = halfA, halfB = halfB, effect = effect, countInPage = countInPage, entry = entry }
 end
@@ -172,12 +211,7 @@ end
 function GeodeRevealSession:_loadGeode(geodeColor, colorSecondary)
 	local geodeModel, halfA, halfB = self.GeodeAnimations:loadGeodeHalvesInto(
 		self.worldModel, ANCHOR_CF, self.geodeTemplate, geodeColor)
-	for _, half in pairs({ halfA, halfB }) do
-		local innerShell = half:FindFirstChild("InnerShell", true)
-		if innerShell and innerShell:IsA("BasePart") then
-			innerShell.Color = colorSecondary
-		end
-	end
+	colorGeodeParts({ halfA, halfB }, "InnerShell", colorSecondary)
 	return geodeModel, halfA, halfB
 end
 
@@ -196,16 +230,20 @@ function GeodeRevealSession:_loadEffect(entry)
 end
 
 function GeodeRevealSession:_crack(halfA, halfB, isFirst, soundName, geodeColor)
-	local GA = self.GeodeAnimations
+	local GA    = self.GeodeAnimations
+	local speed = self._crackSpeed
+	local function scaledTween(instance, duration, props)
+		return self.QuickTween(instance, duration / speed, props)
+	end
 	if isFirst then
-		GA:shakeGeodeHalves(halfA, halfB, self.QuickTween)
-		GA:animateCrack(halfA, halfB, ANCHOR_CF, self.QuickTween)
+		GA:shakeGeodeHalves(halfA, halfB, scaledTween)
+		GA:animateCrack(halfA, halfB, ANCHOR_CF, scaledTween)
 		pcall(self.Sound.playGlobal, self.Sound, soundName)
 		GA:fadeFromBlack(0.4)
 	else
 		self.Sound:playGlobal("FullCrack")
-		GA:shakeGeodeHalves(halfA, halfB, self.QuickTween)
-		GA:animateCrack(halfA, halfB, ANCHOR_CF, self.QuickTween)
+		GA:shakeGeodeHalves(halfA, halfB, scaledTween)
+		GA:animateCrack(halfA, halfB, ANCHOR_CF, scaledTween)
 		pcall(self.Sound.playGlobal, self.Sound, soundName)
 	end
 	ViewportFrameEffects.burst(self.worldModel, {
@@ -231,28 +269,58 @@ function GeodeRevealSession:_showLabel(entry, i, trait, traitDisplay)
 	else
 		label.Text = string.format('<font color="#FFFFFF">%s Geode</font>', contentName)
 	end
-	label.TextTransparency         = 1
-	label.Visible                  = true
-	self.UI.ContinueButton.Text    = (i < #self.results) and "Next" or "Done"
-	self.UI.ContinueButton.Visible = true
+	label.TextTransparency            = 1
+	label.Visible                     = true
+	self.UI.ContinueButton.Text       = (i < #self.results) and "Next" or "Done"
+	self.UI.ContinueButton.Visible    = not self._autoMode
+	local showCrack                   = i < #self.results and not self._autoMode
+	self.UI.CrackBunchButton.Visible  = showCrack
+	self.UI.CrackAllButton.Visible    = showCrack
 	self.QuickTween(label, 0.3, { TextTransparency = 0 })
 end
 
 function GeodeRevealSession:_waitForClick()
-	local done = false
+	local done      = false
 	local clickConn = self.UI.ContinueButton.Activated:Connect(function() done = true end)
 	local charConn  = self.player.CharacterRemoving:Connect(function() done = true end)
-	repeat task.wait() until done
+	repeat task.wait() until done or self._autoMode
 	clickConn:Disconnect()
 	charConn:Disconnect()
+end
+
+function GeodeRevealSession:_checkAutoModeStopping(i)
+	if not self._autoMode then return end
+	local remaining = #self.results - i
+	if remaining == 1 then
+		self._autoMode   = nil
+		self._crackSpeed = 1.0
+	elseif self._autoMode == "bunch" and self.slotIndex == MAX_RACK - 1 then
+		self._autoMode   = nil
+		self._crackSpeed = 1.0
+	elseif self._autoMode == "all" then
+		self._crackSpeed = math.min(self._crackSpeed + CRACK_SPEED_STEP, MAX_CRACK_SPEED)
+	end
 end
 
 function GeodeRevealSession:_sendToSlot(geodeModel, effect, countInPage, entry)
 	self.GeodeAnimations:moveToViewportSlot(
 		geodeModel, effect, self.slotIndex, countInPage, self.QuickTween)
 	local button = self:_createOverlayButton(geodeModel, entry)
+	self:_fitButtonToSlot(button, geodeModel)
 	table.insert(self.rackEntries, { geode = geodeModel, button = button })
 	self.slotIndex += 1
+end
+
+function GeodeRevealSession:_fitButtonToSlot(button, geodeModel)
+	if #self.rackEntries == 0 then return end
+	local prev     = self.rackEntries[#self.rackEntries]
+	local uPrev, _ = self:_projectToScale(prev.geode:GetPivot().Position)
+	local uCur, _  = self:_projectToScale(geodeModel:GetPivot().Position)
+	local w        = math.abs(uCur - uPrev)
+	button.Size = UDim2.new(w, 0, 0, button.Size.Y.Offset)
+	if prev.button and prev.button.Parent then
+		prev.button.Size = UDim2.new(w, 0, 0, prev.button.Size.Y.Offset)
+	end
 end
 
 function GeodeRevealSession:_clearPageIfFull(i)
