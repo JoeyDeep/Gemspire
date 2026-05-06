@@ -11,11 +11,22 @@ local QuestService = {
 local engine
 function QuestService.init(engineModule)
     engine = engineModule
+    local PlayerService = engine:get("PlayerService")
 
     engine.events.Quests.OnServerEvent:Connect(function(player, topic, data)
-        if topic == "giveQuest" then
+        if topic == "giveQuest" and typeof(data) == "string" then
+            local DialogService = engine:get("DialogService")
+            if not (DialogService and DialogService:consumePendingQuestGrant(player, data)) then
+                return
+            end
             QuestService:addQuest(player, data)
         end
+    end)
+
+    PlayerService.PlayerAdded:Connect(function(playerClass)
+        task.defer(function()
+            QuestService:loadActiveQuests(playerClass)
+        end)
     end)
 end
 
@@ -23,6 +34,16 @@ function QuestService:addQuest(player, id)
     local PlayerService = engine:get("PlayerService")
     local playerClass = PlayerService:get(player)
     local questClass = engine:get(`Quest_{id}`)
+    if not playerClass or not questClass then
+        return false
+    end
+
+    playerClass.profile.Data.quests = playerClass.profile.Data.quests or { active = {}, completed = {} }
+    playerClass.localData.quests = playerClass.localData.quests or {}
+
+    if playerClass.localData.quests[id] or playerClass.profile.Data.quests.active[id] or playerClass.profile.Data.quests.completed[id] then
+        return false
+    end
 
     if questClass and questClass.requirements then
         local RequirementEvaluator, pass = engine:get("RequirementEvaluator"), true
@@ -42,9 +63,31 @@ function QuestService:addQuest(player, id)
     return true -- quest added successfully
 end
 
+function QuestService:loadActiveQuests(playerClass)
+    if not playerClass or not playerClass.player or not playerClass.profile then
+        return
+    end
+
+    local activeQuests = (((playerClass or {}).profile or {}).Data or {}).quests
+    activeQuests = activeQuests and activeQuests.active or {}
+
+    playerClass.localData.quests = playerClass.localData.quests or {}
+    for questId, questData in pairs(activeQuests) do
+        if not playerClass.localData.quests[questId] then
+            local questClass = engine:get(`Quest_{questId}`)
+            if questClass then
+                playerClass.localData.quests[questId] = questClass.new(playerClass.player, questData)
+            end
+        end
+    end
+end
+
 function QuestService:giveRewards(player, rewards)
     local PlayerService = engine:get("PlayerService")
     local playerClass = PlayerService:get(player)
+    if not playerClass then
+        return
+    end
 
     local updateTable = {}
 
@@ -67,11 +110,17 @@ end
 function QuestService:completeQuest(player, id)
     local PlayerService = engine:get("PlayerService")
     local playerClass = PlayerService:get(player)
+    if not playerClass then
+        return
+    end
 
     playerClass.profile.Data.quests.completed[id] = os.time()
     playerClass.profile.Data.quests.active[id] = nil
 
-    playerClass.localData.quests[id]:destroy()
+    if playerClass.localData.quests[id] then
+        playerClass.localData.quests[id]:destroy()
+        playerClass.localData.quests[id] = nil
+    end
 
     playerClass:updateClient({ "quests" })
 end

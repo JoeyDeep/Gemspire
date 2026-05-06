@@ -39,8 +39,7 @@ function DialogService.new(npc)
 	self.walkAwayHeartbeat = game:GetService("RunService").Heartbeat:Connect(function()
 		local character = player.Character
 		if not character or (character:GetPivot().Position - self.npcModel:GetPivot().Position).Magnitude > 20 then
-			self.walkAwayHeartbeat:Disconnect()
-			self.walkAwayHeartbeat = nil
+			self:_disconnectWalkAwayHeartbeat()
 			self:walkAway()
 		end
 	end)
@@ -48,6 +47,13 @@ function DialogService.new(npc)
 	self:start()
 
 	return self
+end
+
+function DialogService:_disconnectWalkAwayHeartbeat()
+	if self.walkAwayHeartbeat then
+		self.walkAwayHeartbeat:Disconnect()
+		self.walkAwayHeartbeat = nil
+	end
 end
 
 function DialogService:start()
@@ -253,6 +259,7 @@ function DialogService:endDialog()
 		PromptService:reEnableAll()
 	end)
 
+	self:_disconnectWalkAwayHeartbeat()
 	self.ended = true
 end
 

@@ -27,8 +27,10 @@ function DrillService.init(engineModule)
 		
 	end)
 
-	PlayerService.PlayerRemoved:Connect(function(player)
-		DrillService:removePlayerDrill(player)
+	PlayerService.PlayerRemoved:Connect(function(playerClass)
+		if playerClass and playerClass.player then
+			DrillService:removePlayerDrill(playerClass.player)
+		end
 	end)
 end
 
@@ -36,21 +38,32 @@ function DrillService:collectLoot(player)
 	local InventoryService = engine:get("InventoryService")
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:getData(player)
-
-	local lootYield = DrillService:calculateTotalYield(player)
-
-	if  not DrillService:checkPlayerWithinMinimumDistanceOfDrill(player) then
+	if not playerData then
 		return
 	end
 
+	if not playerData.drill or not playerData.drill.spawnTime or not playerData.drill.position then
+		return
+	end
 
-	local lootArray = DrillService:evaluateDrillRng(player,lootYield,playerData.drill)
+	if not DrillService:checkPlayerWithinMinimumDistanceOfDrill(player) then
+		return
+	end
+
+	local lootYield = DrillService:calculateTotalYield(player)
+	if lootYield <= 0 then
+		return
+	end
+
+	local lootArray = DrillService:evaluateDrillRng(player, lootYield, playerData.drill)
 
 
-	for index, loot in ipairs(lootArray) do
+	for _, loot in ipairs(lootArray) do
 		local lootId = HttpService:GenerateGUID(false)
-		table.insert(playerData.inventory.loot, { name = loot.key, trait = loot.traits, weight = loot.kg, id =  lootId})
-		InventoryService:drawHoldLoot({player=player}, {key = loot.key, trait = loot.traits, kg = loot.kg},lootId)
+		local entry = InventoryService:addLootEntry(player, loot.key, loot.kg, loot.traits or loot.trait, lootId)
+		if entry then
+			InventoryService:drawHoldLoot(PlayerService:get(player), entry, lootId)
+		end
 	end
 
 	if #lootArray ~= 0 then
@@ -60,7 +73,7 @@ function DrillService:collectLoot(player)
 
 	PlayerService:get(player):updateClient({"inventory","drill"})
 
-	engine.events.Drill:FireClient(player,"lootCollected",lootArray)
+	engine.events.Drill:FireClient(player, "lootCollected", lootArray)
 
 
 end
@@ -79,7 +92,7 @@ function DrillService:placeDrill(player, data)
 	local targetPivot = DrillUtility:getDrillTargetPivot(player)
 
 
-	if tool and targetPivot and DrillService:canPlayerPlaceDrill(player,targetPivot.Position) then
+	if tool and targetPivot and DrillService:canPlayerPlaceDrill(player, targetPivot.Position) then
 		-- Placed drills location in storage could be more clear
 		local placedDrill = storage.Tools.Drills.Placed.Drill:Clone()
 		placedDrill.Parent = game.Workspace.Entities.Drills
@@ -167,9 +180,15 @@ end
 function DrillService:calculateTotalYield(player)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:getData(player)
+	if not playerData or not playerData.drill or not playerData.drill.spawnTime then
+		return 0
+	end
 	local Drills = engine:get("Drills")
 
 	local drillInfo = Drills[playerData.drill.type]
+	if not drillInfo then
+		return 0
+	end
 
 	local interval = drillInfo.lootInterval * 60
 	local totalProgress = os.time() - playerData.drill.spawnTime
@@ -219,10 +238,9 @@ end
 function DrillService:checkPlayerWithinMinimumDistanceOfDrill(player)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:getData(player)
-
-	print("distance")
-	print(player:DistanceFromCharacter(playerData.drill.position))
-
+	if not playerData or not playerData.drill or not playerData.drill.position then
+		return false
+	end
 
 	return player:DistanceFromCharacter(playerData.drill.position) <= 20
 end
@@ -231,8 +249,11 @@ end
 function DrillService:playerHasActiveDrill(player)
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:getData(player)
+	if not playerData or not playerData.drill then
+		return false
+	end
 
-	return playerData.drill.spawnTime or playerData.drill.position
+	return playerData.drill.spawnTime ~= nil or playerData.drill.position ~= nil
 end
 
 

@@ -16,7 +16,7 @@ end
 
 Evaluator.standardRequirements = {
     completed_quests = function(playerData, value)
-        local completedQuests = playerData.quests.completed or {}
+        local completedQuests = (playerData.quests and playerData.quests.completed) or {}
         for _, questId in ipairs(value) do
             if not completedQuests[questId] then
                 return false
@@ -25,9 +25,13 @@ Evaluator.standardRequirements = {
         return true
     end,
 
+    spoken_to = function(playerData, value)
+        local dialogHistory = playerData.dialog_history or {}
+        return dialogHistory[value] ~= nil
+    end,
+
     hasQuestAtNode = function(playerData, value) -- value: "questId/nodeId"
-        for questId, questData in pairs(playerData.quests.active or {}) do
-            print(questId, questData.currentNode, value)
+        for questId, questData in pairs((playerData.quests and playerData.quests.active) or {}) do
             if questId .. "/" .. questData.currentNode == value then
                 return true
             end
@@ -38,7 +42,8 @@ Evaluator.standardRequirements = {
 
 Evaluator.taskRequirements = {
     collectLoot = function(playerData, data, taskData)
-        if taskData.lootKey and data.lootKey ~= taskData.lootKey then
+        local requiredLootKey = taskData.lootKey or taskData.item
+        if requiredLootKey and data.lootKey ~= requiredLootKey then
             return false
         end
         if taskData.kg and data.kg < taskData.kg then

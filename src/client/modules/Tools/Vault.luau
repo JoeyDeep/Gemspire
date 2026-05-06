@@ -38,6 +38,7 @@ function Vault.new(toolObj)
 	self.tool = toolObj
 	self.equipped = false
 	self.animations = {}
+	self.connections = {}
 
 	self.selectedItemId = nil
 	self.selectedItem = nil
@@ -45,10 +46,10 @@ function Vault.new(toolObj)
 	self:_initAnimations()
 	self:_initUI()
 
-	toolObj.Equipped:Connect(function()
+	self.connections.toolEquipped = toolObj.Equipped:Connect(function()
 		self:equip()
 	end)
-	toolObj.Unequipped:Connect(function()
+	self.connections.toolUnequipped = toolObj.Unequipped:Connect(function()
 		self:unequip()
 	end)
 
@@ -151,8 +152,17 @@ function Vault:_initUI()
 	self.confirmStroke = self.confirmButton:FindFirstChild("UIStroke")
 	self.defaultConfirmStrokeColor = self.confirmStroke and self.confirmStroke.Color or nil
 
-	self.confirmButton.Activated:Connect(function()
+	self._confirmConn = self.confirmButton.Activated:Connect(function()
 		self:_handleConfirm()
+	end)
+
+	self._playerDataConn = engine:get("PlayerService").Updated:Connect(function()
+		if self.ui and self.ui.Visible then
+			if self.selectedItemId then
+				self.selectedItem = self:_findEquipmentById(self.selectedItemId)
+			end
+			self:refresh()
+		end
 	end)
 end
 
@@ -488,30 +498,10 @@ function Vault:_selectItem(item)
 end
 
 function Vault:_equipItem(item)
-	local playerData = engine:get("PlayerService").data
-	playerData.equipped = playerData.equipped or {}
-	playerData.equipped.equipment = playerData.equipped.equipment or {}
-
-	for _, id in ipairs(playerData.equipped.equipment) do
-		if id == item.id then
-			return
-		end
-	end
-
-	table.insert(playerData.equipped.equipment, item.id)
 	engine.events.Inventory:FireServer("equipEquipment", item.id)
 end
 
 function Vault:_unequipItem(item)
-	local playerData = engine:get("PlayerService").data
-	local equipped = playerData.equipped and playerData.equipped.equipment or {}
-	for index, id in ipairs(equipped) do
-		if id == item.id then
-			table.remove(equipped, index)
-			break
-		end
-	end
-	playerData.equipped.equipment = equipped
 	engine.events.Inventory:FireServer("unequipEquipment", item.id)
 end
 
@@ -533,8 +523,6 @@ function Vault:_handleConfirm()
 		self:_equipItem(self.selectedItem)
 	end
 
-	self:_populateInventoryList()
-	self:_updateSelectionUI()
 end
 
 function Vault:refresh()
@@ -565,9 +553,26 @@ function Vault:unequip()
 end
 
 function Vault:destroy()
+	self:unequip()
+	if self._confirmConn and self._confirmConn.Connected then
+		self._confirmConn:Disconnect()
+		self._confirmConn = nil
+	end
+	if self._playerDataConn and self._playerDataConn.Connected then
+		self._playerDataConn:Disconnect()
+		self._playerDataConn = nil
+	end
 	for _, animation in pairs(self.animations) do
 		animation:Stop()
 		animation:Destroy()
+	end
+	for _, connection in pairs(self.connections) do
+		if connection and connection.Connected then
+			connection:Disconnect()
+		end
+	end
+	if Vault.activeClass == self then
+		Vault.activeClass = nil
 	end
 end
 

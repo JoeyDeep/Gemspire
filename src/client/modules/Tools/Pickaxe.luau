@@ -44,6 +44,7 @@ function Pickaxe.new(toolObj)
 	local self = setmetatable({}, Pickaxe)
 
 	self.tool = toolObj
+	self.name = toolObj.Name
 	self.stats = pickaxeData.stats
 
 	self.equipKey = 0
@@ -59,10 +60,10 @@ function Pickaxe.new(toolObj)
 
 	self:initAnimations()
 
-	toolObj.Equipped:Connect(function()
+	self.connections.toolEquipped = toolObj.Equipped:Connect(function()
 		self:equip()
 	end)
-	toolObj.Unequipped:Connect(function()
+	self.connections.toolUnequipped = toolObj.Unequipped:Connect(function()
 		self:unequip()
 	end)
 
@@ -254,7 +255,6 @@ function Pickaxe:readStrikeGame()
 		impactParams
 	)
 
-	-- i might be trolling
 	local truncatedScore = math.floor((1 / (math.floor((1 / (1 - barY)) * 100) / 100)) * 100) / 100
 	engine.events.Inventory:FireServer("strikePickaxe", truncatedScore)
 
@@ -412,7 +412,6 @@ function Pickaxe:requestStrike()
 					self.animations.Idle:Play(0.1)
 				end)
 			end
-			print("!")
 			return false
 		end
 	else
@@ -444,7 +443,6 @@ function Pickaxe:requestStrike()
 				end)
 			end
 		end)
-		print("!")
 		return false
 	end
 end
@@ -573,7 +571,7 @@ function Pickaxe:enableInput()
 end
 
 function Pickaxe:disableInput()
-	self.inputTrove:Destroy()
+	self.inputTrove:Clean()
 
 	self.cameraShaker:Stop()
 	self:_resetStrikeState("disable-input")
@@ -625,14 +623,19 @@ function Pickaxe:unequip()
 end
 
 function Pickaxe:destroy()
+	self:disableInput()
+	self.inputTrove:Destroy()
 	for _, animation in pairs(self.animations) do
 		animation:Stop()
 		animation:Destroy()
 	end
 	for _, connection in pairs(self.connections) do
-		if connection.Connected then
+		if connection and connection.Connected then
 			connection:Disconnect()
 		end
+	end
+	if Pickaxe.activeClass == self then
+		Pickaxe.activeClass = nil
 	end
 end
 

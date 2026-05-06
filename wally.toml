@@ -12,6 +12,7 @@ Input = "sleitnick/input@2.3.0"
 Trove = "sleitnick/trove@1.5.1"
 topbarplus = "1foreverhd/topbarplus@3.4.0"
 InstanceCache = "penguindevs/instance-cache@1.0.4"
+Purse = "ryanlua/purse@1.1.5"
 
 [server-dependencies]
 ProfileService = "firebird702/profileservice@1.1.0"
