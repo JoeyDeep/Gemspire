@@ -22,7 +22,7 @@ local PlacedDrill = {
 	progressBarTween = nil,
 	drill = nil,
 	animations = nil,
-	inputTrove = Trove.new(),
+	inputTrove = nil,
 	displayedLoot = {}
 }
 PlacedDrill.__index = PlacedDrill
@@ -36,8 +36,6 @@ function PlacedDrill.init(engineModule)
 end
 
 function PlacedDrill.new(drillObj)
-
-	print("We are calling new on placedDrill")
 	local self = setmetatable({}, PlacedDrill)
 
 	PlacedDrill:initAnimations()
@@ -51,6 +49,7 @@ function PlacedDrill.new(drillObj)
 	PlacedDrill.drillInfo = Drills[playerData.drill.type]
 
 	self.drill = drillObj
+	self.inputTrove = Trove.new()
 
 	PlacedDrill.activeClass = self
 	PlacedDrill.spawnTime = playerData.drill.spawnTime
@@ -138,7 +137,12 @@ function PlacedDrill:spawnLoot(lootData)
 	local targetPart = self.drill.AnimatedRefiner.Animated_Drawer
 
 	for _, loot in ipairs(lootData) do
-		local clonedLoot = ReplicatedStorage.Storage.Loot[loot.key]:Clone()
+		local lootKey = loot.lootKey or loot.key or loot.name
+		local lootTemplate = lootKey and ReplicatedStorage.Storage.Loot:FindFirstChild(lootKey)
+		if not lootTemplate then
+			continue
+		end
+		local clonedLoot = lootTemplate:Clone()
 
 		clonedLoot.Parent = self.drill
 
@@ -158,20 +162,22 @@ function PlacedDrill:enableInput()
 
 	local InputData = engine:get("InputData")
 
-	PlacedDrill.keyboardInput = PlacedDrill.inputTrove:Add(Input.Keyboard.new(), "Destroy")
-	PlacedDrill.keyboardInput.KeyDown:Connect(function(key)
+	self.inputTrove:Clean()
+
+	self.keyboardInput = self.inputTrove:Add(Input.Keyboard.new(), "Destroy")
+	self.keyboardInput.KeyDown:Connect(function(key)
 		if key == InputData.Inputs.Drill.MouseKeyboard.Input then
 			self:onInput()
 		end
 	end)
 
-	PlacedDrill.touchInput = PlacedDrill.inputTrove:Add(Input.Touch.new(), "Destroy")
-	PlacedDrill.touchInput.TouchEnded:Connect(function()
+	self.touchInput = self.inputTrove:Add(Input.Touch.new(), "Destroy")
+	self.touchInput.TouchEnded:Connect(function()
 		self:onInput()
 	end)
 
-	PlacedDrill.gamepadInput = PlacedDrill.inputTrove:Add(Input.Gamepad.new(), "Destroy")
-	PlacedDrill.gamepadInput.ButtonUp:Connect(function(button, processed)
+	self.gamepadInput = self.inputTrove:Add(Input.Gamepad.new(), "Destroy")
+	self.gamepadInput.ButtonUp:Connect(function(button, processed)
 		if processed then
 			return
 		end
@@ -211,9 +217,7 @@ function PlacedDrill:closeRefiner()
 	camera.CameraType = Enum.CameraType.Custom
 
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-
-	engine.PlayerGui.UI.Inventory.Visible = true
+	engine:get("PurseService"):popHidden()
 
 	self:animateRefinerClose()
 
@@ -227,7 +231,7 @@ function PlacedDrill:closeRefiner()
 
 	drillUI.Visible = false
 	
-	self.inputTrove:Destroy()
+	self.inputTrove:Clean()
 
 	local taggedLoot = CollectionService:GetTagged("loot")
 
@@ -241,9 +245,9 @@ end
 function PlacedDrill:activateRefineUI()
 	local drillUI = Players.LocalPlayer.PlayerGui.UI.Drill
 
-	PlacedDrill.preferredInput = PlacedDrill.inputTrove:Add(
+	self.preferredInput = self.inputTrove:Add(
 		Input.PreferredInput.Observe(function(inputType: "Gamepad" | "MouseKeyboard" | "Touch")
-			PlacedDrill:updateTip(inputType)
+			self:updateTip(inputType)
 		end)
 	)
 
@@ -386,7 +390,7 @@ function PlacedDrill:focusCamera()
 	local camera = workspace.CurrentCamera
 
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-	engine.PlayerGui.UI.Inventory.Visible = false
+	engine:get("PurseService"):pushHidden()
 
 
 	Promise.delay(0.1):andThen(function()
@@ -467,8 +471,6 @@ function PlacedDrill:enablePrompt()
 end
 
 function PlacedDrill:startProgressBar()
-
-	print("starting progress bar")
 	local totalYield = self:calculateTotalYield()
 
 	local fill = self.progressBar.Bar:WaitForChild("Fill")
@@ -482,7 +484,6 @@ function PlacedDrill:startProgressBar()
 	else
 		local progress = self:calculateProgressToNextYield() / (self.drillInfo.lootInterval * 60)
 
-		print(progress)
 		fill.Size = UDim2.new(progress, 0, 1, 0)  -- Reset empty
 
 		
@@ -500,7 +501,6 @@ function PlacedDrill:startProgressBar()
 		self.progressBarTween:Play()
 
 		self.progressBarTween.Completed:Once(function(playbackState)
-			print(playbackState)
 			if playbackState == Enum.PlaybackState.Completed then
 				self:startProgressBar()
 				self:enablePrompt()
@@ -554,14 +554,18 @@ function PlacedDrill:randomPositionInPart(part)
 end
 
 function PlacedDrill:Destroy()
-	print("destroying progress bar")
 	if self.progressBarTween then
 		self.progressBarTween:Destroy()
 	end
-	self.inputTrove:Destroy()
-	for _, animation in pairs(self.animations) do
+	if self.inputTrove then
+		self.inputTrove:Destroy()
+		self.inputTrove = nil
+	end
+	for _, animation in pairs(self.animations or {}) do
 		animation:Stop()
-		animation:Destroy()
+	end
+	if PlacedDrill.activeClass == self then
+		PlacedDrill.activeClass = nil
 	end
 end
 

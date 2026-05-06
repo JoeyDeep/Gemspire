@@ -19,6 +19,7 @@ USAGE:
 
 local engine = {
 	modules = {},
+	moduleOrder = {},
 	events = game:GetService("ReplicatedStorage").Events,
 	player = game:GetService("Players").LocalPlayer,
 	PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"),
@@ -81,6 +82,9 @@ local function loadModule(module)
 	if module:IsA("ModuleScript") then
 		local success, err = pcall(function()
 			local loadedModule = require(module)
+			if engine.modules[module.Name] == nil then
+				table.insert(engine.moduleOrder, module.Name)
+			end
 			engine.modules[module.Name] = loadedModule
 		end)
 		if not success then
@@ -89,7 +93,8 @@ local function loadModule(module)
 	end
 end
 local function initModules()
-	for name, module in pairs(engine.modules) do
+	for _, name in ipairs(engine.moduleOrder) do
+		local module = engine.modules[name]
 		if typeof(module) == "table" and module.init and not module.___loaded then
 			-- Call the init function if it exists
 			local start = tick()
@@ -104,12 +109,25 @@ local function initModules()
 	end
 end
 
-for _, module in pairs(game:GetService("ReplicatedStorage").Shared:GetDescendants()) do
+local function getSortedModules(container)
+	local modules = {}
+	for _, module in ipairs(container:GetDescendants()) do
+		if module:IsA("ModuleScript") then
+			table.insert(modules, module)
+		end
+	end
+	table.sort(modules, function(a, b)
+		return a:GetFullName() < b:GetFullName()
+	end)
+	return modules
+end
+
+for _, module in ipairs(getSortedModules(game:GetService("ReplicatedStorage").Shared)) do
 	loadModule(module)
 end
 initModules()
 for _, folderName in ipairs(foldersToLoad) do
-	for _, module in pairs(script.Parent.Parent[folderName]:GetDescendants()) do
+	for _, module in ipairs(getSortedModules(script.Parent.Parent[folderName])) do
 		loadModule(module)
 	end
 end

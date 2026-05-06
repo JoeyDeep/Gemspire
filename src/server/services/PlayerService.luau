@@ -12,9 +12,11 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local RunService = game:GetService("RunService")
-local Promise = require(ReplicatedStorage.Packages.Promise)
+
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local DefaultData = require(ReplicatedStorage.Shared.GameData.DefaultData)
+local Kits = require(ReplicatedStorage.Shared.GameData.Items.Kits)
+local InventoryUtils = require(ReplicatedStorage.Shared.utils.InventoryUtils)
 local ProfileService = require(ServerScriptService.ServerPackages.ProfileService)
 
 local PlayerService = {
@@ -31,6 +33,41 @@ if RunService:IsStudio() == true then
 end
 
 local engine
+
+local function unregisterPlayer(playerClass)
+	if not playerClass or playerClass._removed then
+		return
+	end
+
+	playerClass._removed = true
+
+	local player = playerClass.player
+	if player then
+		PlayerService.players[player.Name] = nil
+	end
+
+	PlayerService.PlayerRemoved:Fire(playerClass)
+end
+
+local function getContainerStatus(player)
+	local playerClass = PlayerService:get(player)
+	if not playerClass or not playerClass.profile then
+		return { now = 0, max = 0, quality = 0 }
+	end
+
+	local playerData = InventoryUtils.ensurePlayerDataShape(playerClass.profile.Data)
+	local capacityOverride
+	local ModifierManager = engine and engine:get("ModifierManager")
+	if ModifierManager then
+		local modifiedCapacity = ModifierManager:getKitStat(player, "capacity", playerData.equipped.kit)
+		if typeof(modifiedCapacity) == "number" then
+			capacityOverride = modifiedCapacity
+		end
+	end
+
+	return InventoryUtils.getContainerStatus(playerData, Kits, capacityOverride)
+end
+
 function PlayerService.init(engineModule)
 	engine = engineModule
 
@@ -42,11 +79,11 @@ function PlayerService.init(engineModule)
 		PlayerService:playerRemoved(player)
 	end)
 
-	for _, player in ipairs(Players:GetPlayers()) do
-		Promise.new(function(resolve)
-			resolve(PlayerService.new(player))
-		end)
-	end
+	task.defer(function()
+		for _, player in ipairs(Players:GetPlayers()) do
+			PlayerService.new(player)
+		end
+	end)
 
 	-- future uses
 	-- engine.events.PlayerData.OnServerEvent:Connect(function(player, topic, data) end)
@@ -54,8 +91,11 @@ end
 
 -- called when a new player joins and their profile is fully server-loaded
 function PlayerService:newPlayerSetup()
-	self.localData.lastPickaxeStrike = 0
-	self.localData.quests = {}
+	self.localData = self.localData or {}
+	if typeof(self.localData.lastPickaxeStrike) ~= "number" then
+		self.localData.lastPickaxeStrike = 0
+	end
+	self.localData.quests = self.localData.quests or {}
 
 	engine.events.PlayerData:FireClient(self.player, "provideClientData", self:getClientData())
 end
@@ -65,14 +105,15 @@ end
 -- ^ the profile should be up-to-date ALWAYS, in case of abrupt server disconnects. you shouldn't be waiting till here.
 function PlayerService:processRelease()
 	print(`Releasing profile for player: {self.player.Name}`)
-	self = nil
+	self.profile = nil
+	self.localData = nil
 end
 
 -- package a player's profile data for client use purposes
 function PlayerService:getClientData()
-	local playerData = table.clone(self.profile.Data)
+	local playerData = table.clone(InventoryUtils.ensurePlayerDataShape(self.profile.Data))
 	-- remove sensitive data from profile below
-	playerData.container = engine:get("InventoryService"):getContainerStatus(self.player)
+	playerData.container = getContainerStatus(self.player)
 
 	return playerData
 end
@@ -83,10 +124,14 @@ function PlayerService.new(player)
 	local profile = GameProfileStore:LoadProfileAsync("Player_" .. player.UserId)
 
 	if profile ~= nil then
-		profile:AddUserId(player.UserId) -- GPDR compliance
+		profile:AddUserId(player.UserId) -- GDPR compliance
 		profile:Reconcile() -- add any new data from DefaultData that is not in the profile
+		InventoryUtils.ensurePlayerDataShape(profile.Data)
 		profile:ListenToRelease(function() -- kick player if profile is loaded elsewhere
-			player:Kick()
+			unregisterPlayer(self)
+			if player:IsDescendantOf(Players) then
+				player:Kick()
+			end
 			if self and self.processRelease then
 				self:processRelease()
 			end
@@ -105,7 +150,7 @@ function PlayerService.new(player)
 
 	if not self.profile then
 		warn("Failed to load profile for player: " .. player.Name)
-		return
+		return nil
 	end
 
 	PlayerService.players[player.Name] = self
@@ -113,17 +158,19 @@ function PlayerService.new(player)
 	print(`{player.Name} has joined:`, self)
 
 	self:newPlayerSetup()
+	return self
 end
 
 function PlayerService:playerRemoved(player)
-	PlayerService.PlayerRemoved:Fire(self)
+	local playerClass = PlayerService:get(player)
+	if not playerClass then
+		return
+	end
 
-	print("leaving: " .. player.Name)
-	if self.profile then
-		self.profile:Release()
-		print("released")
-		Players.players[player.Name] = nil
-		setmetatable(self, nil)
+	unregisterPlayer(playerClass)
+
+	if playerClass.profile then
+		playerClass.profile:Release()
 	end
 end
 
@@ -146,7 +193,8 @@ function PlayerService:getData(player)
 		return nil
 	end
 
-	return PlayerService.players[player.Name].profile.Data
+	local playerClass = PlayerService.players[player.Name]
+	return playerClass and playerClass.profile and playerClass.profile.Data or nil
 end
 
 function PlayerService:getProfile(player)
@@ -154,7 +202,8 @@ function PlayerService:getProfile(player)
 		return nil
 	end
 
-	return PlayerService.players[player.Name].profile
+	local playerClass = PlayerService.players[player.Name]
+	return playerClass and playerClass.profile or nil
 end
 
 function PlayerService:get(player)

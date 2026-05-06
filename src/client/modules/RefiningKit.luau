@@ -178,7 +178,7 @@ function RefiningKit:startRefining()
 	engine.events.Inventory:FireServer("equipKit")
 
 	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-	engine.PlayerGui.UI.Inventory.Visible = false
+	engine:get("PurseService"):pushHidden()
 
 	Promise.delay(0.1):andThen(function()
 		camera.CameraType = Enum.CameraType.Scriptable
@@ -196,9 +196,8 @@ function RefiningKit:stopRefining()
 	Promise.fromEvent(QuickTween(workspace.CurrentCamera, 0.25, { CFrame = RefiningKit.cameraCFCache }).Completed)
 		:andThen(function()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			engine:get("PurseService"):popHidden()
 
-			engine.PlayerGui.UI.Inventory.Visible = true
 			workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
 
 			local PlayerModule = require(engine.player.PlayerScripts:WaitForChild("PlayerModule"))

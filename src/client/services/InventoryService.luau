@@ -11,12 +11,17 @@
 local InventoryService = {}
 InventoryService.__index = InventoryService
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local InventoryUtils = require(ReplicatedStorage.Shared.utils.InventoryUtils)
+
 local engine
 function InventoryService.init(engineModule)
 	engine = engineModule
 
 	local Players = game:GetService("Players")
 	local player = Players.LocalPlayer
+	InventoryService.setupTools = {}
+	InventoryService.toolControllers = {}
 
 	engine.events.Inventory.OnClientEvent:Connect(function(topic, data)
 		if topic == "kitUpdate" then
@@ -25,7 +30,10 @@ function InventoryService.init(engineModule)
 			engine:get("RefiningKit"):setupSmash()
 
 			for _, reward in pairs(data) do
-				table.insert(engine:get("PlayerService").data.inventory.loot, reward)
+				local normalizedReward = InventoryUtils.normalizeLootEntry(reward)
+				if normalizedReward then
+					table.insert(engine:get("PlayerService").data.inventory.loot, normalizedReward)
+				end
 				-- [!] @TODO: add side ui to show what they got
 			end
 		elseif topic == "refineReplicate" then
@@ -90,36 +98,79 @@ function InventoryService.init(engineModule)
 
 	-- each time a new character is added, init inventory for it
 	player.CharacterAdded:Connect(function(character: Model)
-		InventoryService.initCharacter(character)
+		InventoryService:bindCharacter(character)
 	end)
 	if player.Character then
-		InventoryService.initCharacter(player.Character)
+		InventoryService:bindCharacter(player.Character)
 	end
 end
 
-function InventoryService.initCharacter(character)
+function InventoryService:cleanupTool(toolObj)
+	local controller = self.toolControllers and self.toolControllers[toolObj]
+	if controller and controller.destroy then
+		controller:destroy()
+	end
+	if self.toolControllers then
+		self.toolControllers[toolObj] = nil
+	end
+	if self.setupTools then
+		self.setupTools[toolObj] = nil
+	end
+end
+
+function InventoryService:cleanupToolBindings()
+	if self._backpackChildAdded then
+		self._backpackChildAdded:Disconnect()
+		self._backpackChildAdded = nil
+	end
+	if self._backpackChildRemoved then
+		self._backpackChildRemoved:Disconnect()
+		self._backpackChildRemoved = nil
+	end
+	local toolsToCleanup = {}
+	for toolObj in pairs(self.setupTools or {}) do
+		table.insert(toolsToCleanup, toolObj)
+	end
+	for _, toolObj in ipairs(toolsToCleanup) do
+		self:cleanupTool(toolObj)
+	end
+end
+
+function InventoryService:bindCharacter(character)
 	local Players = game:GetService("Players")
 	local player = Players.LocalPlayer
 	local backpack = player:WaitForChild("Backpack")
 
-	local self = setmetatable({}, InventoryService)
 	self.character = character
 	self.backpack = backpack
-	self.setupTools = {}
 
-	self.backpack.ChildAdded:Connect(function(toolObj)
+	self:cleanupToolBindings()
+
+	self._backpackChildAdded = backpack.ChildAdded:Connect(function(toolObj)
 		self:setupTool(toolObj)
 	end)
+	self._backpackChildRemoved = backpack.ChildRemoved:Connect(function(toolObj)
+		if not toolObj:IsA("Tool") then
+			return
+		end
+		task.defer(function()
+			if toolObj.Parent ~= self.backpack and toolObj.Parent ~= self.character then
+				self:cleanupTool(toolObj)
+			end
+		end)
+	end)
+
 	for _, toolObj in pairs(backpack:GetChildren()) do
 		if toolObj:IsA("Tool") then
 			self:setupTool(toolObj)
 		end
 	end
-
-	return self
 end
 
 function InventoryService:setupTool(toolObj)
+	if not toolObj:IsA("Tool") then
+		return
+	end
 	if self.setupTools[toolObj] then
 		return
 	end
@@ -133,11 +184,19 @@ function InventoryService:setupTool(toolObj)
 	end
 
 	if type == "Pickaxe" then
-		engine:get("Pickaxe").new(toolObj)
+		self.toolControllers[toolObj] = engine:get("Pickaxe").new(toolObj)
 	elseif type == "Vault" then
-		engine:get("Vault").new(toolObj)
+		self.toolControllers[toolObj] = engine:get("Vault").new(toolObj)
 	elseif type == "Drill" then
-		engine:get("Drill").new(toolObj)
+		self.toolControllers[toolObj] = engine:get("Drill").new(toolObj)
+	end
+
+	toolObj.Destroying:Once(function()
+		self:cleanupTool(toolObj)
+	end)
+
+	if toolObj.Parent ~= self.backpack and toolObj.Parent ~= self.character then
+		self:cleanupTool(toolObj)
 	end
 end
 

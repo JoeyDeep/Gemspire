@@ -50,7 +50,7 @@ function GeodeCutter:crackSequence(geodeTool)
 
 	if crackingMethodModule then
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-		engine.PlayerGui.UI.Inventory.Visible = false
+		engine:get("PurseService"):pushHidden()
 		SpeedManager:setState("crackingGeode", "freeze")
 		Controls:Disable()
 		PromptService:disableAll()
@@ -59,8 +59,7 @@ function GeodeCutter:crackSequence(geodeTool)
 		completeCallback.Event:Once(function(result)
 			PromptService:reEnableAll()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-			engine.PlayerGui.UI.Inventory.Visible = true
+			engine:get("PurseService"):popHidden()
 			SpeedManager:dropState("crackingGeode", "freeze")
 			Controls:Enable()
 			print(result)

@@ -1,30 +1,12 @@
---[[
-	CLASS: PromptService.new(existingPrompt: ProximityPrompt?) -> existingPrompt is optional; if provided, wraps that prompt
-	
-	PURPOSE:
-		Manage proximity prompts and their interactions with the player.
-		This service automatically handles prompts tagged with CollectionService tag "ProximityPrompt",
-		but also allows for dynamic creation of prompts via PromptService.new()
-
-		Essentially, this service wraps ProximityPrompt instances to provide
-		custom UI handling and easy management of multiple prompts and prompt types.
-
-	USAGE:
-		ProximityPrompt instances with CollectionSerivce tag "ProximityPrompt" will be
-		automatically managed by this service.
-
-		additionally,
-		dynamically created prompts can be made via PromptService.new()
-
-]]
-
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
 local Input = require(ReplicatedStorage.Packages.Input)
+
 local PromptService = {
 	prompts = {},
+	promptMap = {},
 }
 PromptService.__index = PromptService
 
@@ -44,7 +26,7 @@ end
 
 function PromptService:disableAll()
 	for _, prompt in pairs(PromptService.prompts) do
-		if prompt.prompt.Enabled then
+		if prompt.prompt and prompt.prompt.Enabled then
 			prompt:set("Enabled", false)
 			prompt.wasEnabled = true
 		end
@@ -61,13 +43,11 @@ function PromptService:reEnableAll()
 end
 
 function PromptService.new(existingPrompt)
-	for _, existingPromptClass in pairs(PromptService.prompts) do
-		if existingPrompt == existingPromptClass.prompt then
-			return
-		end
+	if existingPrompt and PromptService.promptMap[existingPrompt] then
+		return PromptService.promptMap[existingPrompt]
 	end
-	local self = setmetatable({}, PromptService)
 
+	local self = setmetatable({}, PromptService)
 	local quickTween = engine:get("QuickTween")
 	local InputData = engine:get("InputData")
 
@@ -79,10 +59,9 @@ function PromptService.new(existingPrompt)
 	ui.Parent = engine.PlayerGui or Players.LocalPlayer:WaitForChild("PlayerGui")
 	local defaultButtonImage = ui.PromptFrame.InputFrame.Frame.ButtonImage.Image
 
-	if existingPrompt then
-		ui.PromptFrame.ActionText.Text = existingPrompt.ActionText
-		ui.PromptFrame.ObjectText.Text = existingPrompt.ObjectText
-	end
+	self.prompt = prompt
+	self.ui = ui
+	self._connections = {}
 
 	local function setInputDisplay(inputType)
 		local inputFrame = ui.PromptFrame.InputFrame.Frame
@@ -131,90 +110,118 @@ function PromptService.new(existingPrompt)
 		end
 	end
 
-	prompt:GetPropertyChangedSignal("ActionText"):Connect(function()
+	local function connect(signal, callback)
+		local connection = signal:Connect(callback)
+		table.insert(self._connections, connection)
+		return connection
+	end
+
+	connect(prompt:GetPropertyChangedSignal("ActionText"), function()
 		ui.PromptFrame.ActionText.Text = prompt.ActionText
 	end)
-	prompt:GetPropertyChangedSignal("ObjectText"):Connect(function()
+	connect(prompt:GetPropertyChangedSignal("ObjectText"), function()
 		ui.PromptFrame.ObjectText.Text = prompt.ObjectText
 	end)
-	prompt:GetPropertyChangedSignal("KeyboardKeyCode"):Connect(function()
+	connect(prompt:GetPropertyChangedSignal("KeyboardKeyCode"), function()
 		setInputDisplay(Input.PreferredInput.Current)
 	end)
-	prompt:GetPropertyChangedSignal("GamepadKeyCode"):Connect(function()
+	connect(prompt:GetPropertyChangedSignal("GamepadKeyCode"), function()
 		setInputDisplay(Input.PreferredInput.Current)
 	end)
-	prompt:GetPropertyChangedSignal("Parent"):Connect(function()
-		updateAdornee()
-	end)
-
-	prompt.PromptShown:Connect(function()
-		print("show me!!!")
+	connect(prompt:GetPropertyChangedSignal("Parent"), updateAdornee)
+	connect(prompt.PromptShown, function()
 		ui.Enabled = true
 	end)
-	prompt.PromptHidden:Connect(function()
+	connect(prompt.PromptHidden, function()
 		ui.Enabled = false
 	end)
-	prompt.PromptButtonHoldBegan:Connect(function()
+	connect(prompt.PromptButtonHoldBegan, function()
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonFrame.UICorner, 0.1, { CornerRadius = UDim.new(0.5, 0) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonImage, 0.1, { ImageColor3 = Color3.new(0, 0, 0) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonText, 0.1, { TextColor3 = Color3.new(0, 0, 0) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonFrame, 0.1, { ImageColor3 = Color3.new(1, 1, 1) })
 	end)
-	prompt.Triggered:Connect(function()
+	connect(prompt.Triggered, function()
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonFrame.UICorner, 0.1, { CornerRadius = UDim.new(0.5, 0) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonImage, 0.1, { ImageColor3 = Color3.new(0, 0, 0) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonText, 0.1, { TextColor3 = Color3.new(0, 0, 0) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonFrame, 0.1, { ImageColor3 = Color3.new(1, 1, 1) })
 	end)
-	prompt.PromptButtonHoldEnded:Connect(function()
+	connect(prompt.PromptButtonHoldEnded, function()
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonFrame.UICorner, 0.1, { CornerRadius = UDim.new(0.15, 0) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonImage, 0.1, { ImageColor3 = Color3.new(1, 1, 1) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonText, 0.1, { TextColor3 = Color3.new(1, 1, 1) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonFrame, 0.1, { ImageColor3 = Color3.new(0, 0, 0) })
 	end)
-	prompt.TriggerEnded:Connect(function()
+	connect(prompt.TriggerEnded, function()
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonFrame.UICorner, 0.1, { CornerRadius = UDim.new(0.15, 0) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonImage, 0.1, { ImageColor3 = Color3.new(1, 1, 1) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonText, 0.1, { TextColor3 = Color3.new(1, 1, 1) })
 		quickTween(ui.PromptFrame.InputFrame.Frame.ButtonFrame, 0.1, { ImageColor3 = Color3.new(0, 0, 0) })
 	end)
-
-	self.prompt = prompt
-	self.ui = ui
+	connect(prompt.Destroying, function()
+		self:destroy()
+	end)
 
 	local clickButton = ui:FindFirstChildWhichIsA("TextButton", true)
 	if clickButton then
-		clickButton.InputBegan:Connect(function(input)
-			if
-				input.UserInputType == Enum.UserInputType.MouseButton1
-				or input.UserInputType == Enum.UserInputType.Touch
-			then
+		connect(clickButton.InputBegan, function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 				prompt:InputHoldBegin()
 			end
 		end)
-		clickButton.InputEnded:Connect(function(input)
-			if
-				input.UserInputType == Enum.UserInputType.MouseButton1
-				or input.UserInputType == Enum.UserInputType.Touch
-			then
+		connect(clickButton.InputEnded, function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 				prompt:InputHoldEnd()
 			end
 		end)
 	end
 
-	local preferredDisconnect = Input.PreferredInput.Observe(function(inputType)
+	self._preferredDisconnect = Input.PreferredInput.Observe(function(inputType)
 		setInputDisplay(inputType)
 	end)
+
+	ui.PromptFrame.ActionText.Text = prompt.ActionText
+	ui.PromptFrame.ObjectText.Text = prompt.ObjectText
+	setInputDisplay(Input.PreferredInput.Current)
 	updateAdornee()
-	prompt.Destroying:Connect(function()
-		if preferredDisconnect then
-			preferredDisconnect()
-			preferredDisconnect = nil
-		end
-	end)
 
 	table.insert(PromptService.prompts, self)
+	PromptService.promptMap[prompt] = self
 	return self
+end
+
+function PromptService:destroy()
+	if self._destroyed then
+		return
+	end
+	self._destroyed = true
+
+	if self._preferredDisconnect then
+		self._preferredDisconnect()
+		self._preferredDisconnect = nil
+	end
+
+	for _, connection in ipairs(self._connections or {}) do
+		if connection and connection.Connected then
+			connection:Disconnect()
+		end
+	end
+	self._connections = nil
+
+	if self.ui then
+		self.ui:Destroy()
+		self.ui = nil
+	end
+
+	if self.prompt then
+		PromptService.promptMap[self.prompt] = nil
+	end
+
+	local index = table.find(PromptService.prompts, self)
+	if index then
+		table.remove(PromptService.prompts, index)
+	end
 end
 
 function PromptService:set(property, value)

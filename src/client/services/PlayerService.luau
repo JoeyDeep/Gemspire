@@ -9,10 +9,12 @@
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Signal = require(ReplicatedStorage.Packages.Signal)
+local InventoryUtils = require(ReplicatedStorage.Shared.utils.InventoryUtils)
 
 local PlayerService = {
 	data = {},
-	Loaded = Signal.new()
+	Loaded = Signal.new(),
+	Updated = Signal.new(),
 }
 
 local engine
@@ -23,19 +25,22 @@ function PlayerService.init(engineModule)
 	engine.events.PlayerData.OnClientEvent:Connect(function(topic, data)
 		-- first time receiving player data from server
 		if topic == "provideClientData" then
-			PlayerService.data = data
-			print(`Client Data:`, PlayerService.data)
+			PlayerService.data = InventoryUtils.ensurePlayerDataShape(data)
 			PlayerService:loaded()
+			PlayerService.Updated:Fire(PlayerService.data)
 
 		-- full set from server
 		elseif topic == "setClientData" then
-			PlayerService.data = data
+			PlayerService.data = InventoryUtils.ensurePlayerDataShape(data)
+			PlayerService.Updated:Fire(PlayerService.data)
 		-- partial update from server
 		elseif topic == "updateClientData" then
 			for key, value in pairs(data) do
 				PlayerService.data[key] = value
 			end
+			InventoryUtils.ensurePlayerDataShape(PlayerService.data)
 			PlayerService:processClientDataUpdate(data)
+			PlayerService.Updated:Fire(PlayerService.data, data)
 		end
 	end)
 end
