@@ -1,13 +1,12 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Input = require(ReplicatedStorage.Packages.Input)
-local Promise = require(ReplicatedStorage.Packages.Promise)
 local Trove = require(ReplicatedStorage.Packages.Trove)
 
-function bind(method, self)
-    return function(...)
-        return method(self, ...)
-    end
+local function bind(method, self)
+	return function(...)
+		return method(self, ...)
+	end
 end
 
 local Drill = {
@@ -28,15 +27,15 @@ function Drill.new(toolObj)
 	local self = setmetatable({}, Drill)
 
 	self.tool = toolObj
+	self.connections = {}
+	self.inputTrove = Trove.new()
 
-	toolObj.Equipped:Connect(function()
+	self.connections.toolEquipped = toolObj.Equipped:Connect(function()
 		self:equip()
 	end)
-	toolObj.Unequipped:Connect(function()
+	self.connections.toolUnequipped = toolObj.Unequipped:Connect(function()
 		self:unequip()
 	end)
-
-	self.inputTrove = Trove.new()
 
 	Drill.activeClass = self
 
@@ -61,22 +60,22 @@ function Drill:initAnimations()
 end
 
 function Drill:equip()
-	print("We have equiped the drill")
-
 	local InputData = engine:get("InputData")
 
+	self.inputTrove:Clean()
+
 	self.mouseInput = self.inputTrove:Add(Input.Mouse.new(), "Destroy")
-	self.mouseInput.LeftUp:Connect(bind(self.processInput,self))
+	self.mouseInput.LeftUp:Connect(bind(self.processInput, self))
 
 	self.touchInput = self.inputTrove:Add(Input.Touch.new(), "Destroy")
-	self.touchInput.TouchEnded:Connect(bind(self.processInput,self))
+	self.touchInput.TouchEnded:Connect(bind(self.processInput, self))
 
 	self.gamepadInput = self.inputTrove:Add(Input.Gamepad.new(), "Destroy")
 	self.gamepadInput.ButtonUp:Connect(function(button, processed)
 		if processed then
 			return
 		end
-		if InputData.Inputs.Pickaxe.Gamepad.Input == button then
+		if InputData.Inputs.Drill.Gamepad.Input == button then
 			self:processInput()
 		end
 	end)
@@ -84,30 +83,29 @@ function Drill:equip()
 	local playerData = engine:get("PlayerService").data
 
 	if playerData.drill.spawnTime then
-		print("do something else")
 		self:turnOnDrillBeam()
 	else
 		self:showEquipedDrill()
 		self:carryDrillPlayerAnimation()
 	end
-
 end
 
 function Drill:unequip()
-	print("We have unequiped the drill")
-	self.inputTrove:Destroy()
+	self.inputTrove:Clean()
 	if self.heldDrill then
 		self.heldDrill:Destroy()
+		self.heldDrill = nil
 	end
 	if self.beam then
 		self.beam:Destroy()
+		self.beam = nil
 	end
 	if self.playerBeamAttachment then
 		self.playerBeamAttachment:Destroy()
+		self.playerBeamAttachment = nil
 	end
 	self:carryDrillAnimationStop()
 end
-
 
 function Drill:processInput()
 	if self:canPlayerPlaceDrill() then
@@ -116,77 +114,72 @@ function Drill:processInput()
 end
 
 function Drill:turnOnDrillBeam()
-
 	local DrillUtility = engine:get("DrillUtility")
 
 	local character = Players.LocalPlayer.Character
-
 	local playerDrill = DrillUtility:findPlayerDrill(Players.LocalPlayer)
+	if not (character and playerDrill) then
+		return
+	end
 
 	self.playerBeamAttachment = Instance.new("Attachment")
-    self.playerBeamAttachment.Name = "BeamStart"
-    self.playerBeamAttachment.Parent = character:FindFirstChild("Torso")
+	self.playerBeamAttachment.Name = "BeamStart"
+	self.playerBeamAttachment.Parent = character:FindFirstChild("Torso")
 
 	local targetAttach = playerDrill.BeamTarget
 
 	self.beam = Instance.new("Beam")
-    self.beam.Attachment0 = self.playerBeamAttachment
-    self.beam.Attachment1 = targetAttach
-    self.beam.FaceCamera = true  -- Always faces camera (no twisting)
-    self.beam.Width0 = 0.2
-    self.beam.Width1 = 0.2
-    self.beam.Transparency = NumberSequence.new(0)  -- Opaque
-    self.beam.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255)) 
+	self.beam.Attachment0 = self.playerBeamAttachment
+	self.beam.Attachment1 = targetAttach
+	self.beam.FaceCamera = true
+	self.beam.Width0 = 0.2
+	self.beam.Width1 = 0.2
+	self.beam.Transparency = NumberSequence.new(0)
+	self.beam.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
 
 	self.beam.Parent = workspace
 end
 
 function Drill:showEquipedDrill()
-
 	local DrillUtility = engine:get("DrillUtility")
 	local storage = ReplicatedStorage.Storage
 
 	local character = Players.LocalPlayer.Character
-
-	local torso = character:FindFirstChild("Torso")
+	local torso = character and character:FindFirstChild("Torso")
+	if not torso then
+		return
+	end
 
 	self.heldDrill = storage.Tools.Drills.Held.Drill:Clone()
 
-	DrillUtility:paintPlayerDrill(Players.LocalPlayer,self.heldDrill)
+	DrillUtility:paintPlayerDrill(Players.LocalPlayer, self.heldDrill)
 
-	local primaryPart =self.heldDrill.PrimaryPart
+	local primaryPart = self.heldDrill.PrimaryPart
 
-	print(torso.CFrame.LookVector)
-
-	self.heldDrill:PivotTo(torso.CFrame + torso.CFrame.LookVector * 1.75 - torso.CFrame.RightVector * 1 + Vector3.new(0,-.75,0))
-	--primaryPart.CFrame = rightHand.CFrame
+	self.heldDrill:PivotTo(
+		torso.CFrame + torso.CFrame.LookVector * 1.75 - torso.CFrame.RightVector * 1 + Vector3.new(0, -0.75, 0)
+	)
 
 	self.heldDrill.Parent = character
 
 	local gripWeld = Instance.new("WeldConstraint")
-    gripWeld.Part0 = torso
-    gripWeld.Part1 = primaryPart
-    gripWeld.Parent = torso
-
+	gripWeld.Part0 = torso
+	gripWeld.Part1 = primaryPart
+	gripWeld.Parent = torso
 end
 
 function Drill:placeDrill()
-	print("placing drill")
-	print(self.tool)
-	
 	engine.events.Drill:FireServer("placeDrill")
-	
-	
 
 	task.delay(0.1, function()
 		local character = Players.LocalPlayer.Character
-		local humanoid = character.Humanoid
-		humanoid:UnequipTools()
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid:UnequipTools()
+		end
 	end)
 
 	self:carryDrillAnimationStop()
-
-
 end
 
 function Drill:canPlayerPlaceDrill()
@@ -197,12 +190,14 @@ function Drill:canPlayerPlaceDrill()
 	local targetPivot = DrillUtility:getDrillTargetPivot(Players.LocalPlayer)
 
 	if targetPivot then
-		if DrillUtility:drillDensityCheck(Players.LocalPlayer,targetPivot.Position) then			
+		if DrillUtility:drillDensityCheck(Players.LocalPlayer, targetPivot.Position) then
 			result = true
 		else
-			Notifications.new("This material is too hard for your drill to mine!", { italic = true, textColor = Color3.fromRGB(230, 75, 77) })
+			Notifications.new("This material is too hard for your drill to mine!", {
+				italic = true,
+				textColor = Color3.fromRGB(230, 75, 77),
+			})
 		end
-		
 	else
 		Notifications.new("Nothing to mine here!", { italic = true, textColor = Color3.fromRGB(230, 75, 77) })
 	end
@@ -211,16 +206,30 @@ function Drill:canPlayerPlaceDrill()
 end
 
 function Drill:carryDrillAnimationStop()
-	local carryAnimation = Drill.animations.CarryDrill
-	carryAnimation:Stop()	
-
+	local carryAnimation = Drill.animations and Drill.animations.CarryDrill
+	if carryAnimation then
+		carryAnimation:Stop()
+	end
 end
 
 function Drill:carryDrillPlayerAnimation()
+	local startAnimation = Drill.animations and Drill.animations.CarryDrill
+	if startAnimation then
+		startAnimation:Play()
+	end
+end
 
-	local startAnimation = Drill.animations.CarryDrill
-
-	startAnimation:Play()
+function Drill:destroy()
+	self:unequip()
+	self.inputTrove:Destroy()
+	for _, connection in pairs(self.connections) do
+		if connection and connection.Connected then
+			connection:Disconnect()
+		end
+	end
+	if Drill.activeClass == self then
+		Drill.activeClass = nil
+	end
 end
 
 return Drill

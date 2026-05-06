@@ -7,4 +7,5 @@
 Written 08/12/2025 by Jeorge Vorce
 --]]
 
+require(game:GetService("ReplicatedStorage").Packages.Purse)
 require(script.Engine)

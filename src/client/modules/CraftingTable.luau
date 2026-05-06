@@ -1,7 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 
 local CraftingFormulas = require(ReplicatedStorage.Shared.GameData.CraftingFormulas)
 local Loot = require(ReplicatedStorage.Shared.GameData.Items.Loot)
@@ -213,8 +212,7 @@ function CraftingTable:openUI()
 	self:_startWalkAwayMonitor()
 
 	PromptService:disableAll()
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-	engine.PlayerGui.UI.Inventory.Visible = false
+	engine:get("PurseService"):pushHidden()
 	if engine.PlayerGui.UI:FindFirstChild("Quests") then
 		self._questsVisible = engine.PlayerGui.UI.Quests.Visible
 		engine.PlayerGui.UI.Quests.Visible = false
@@ -245,8 +243,7 @@ function CraftingTable:closeUI()
 	end
 
 	PromptService:reEnableAll()
-	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-	engine.PlayerGui.UI.Inventory.Visible = true
+	engine:get("PurseService"):popHidden()
 	if engine.PlayerGui.UI:FindFirstChild("Quests") and self._questsVisible ~= nil then
 		engine.PlayerGui.UI.Quests.Visible = self._questsVisible
 		self._questsVisible = nil

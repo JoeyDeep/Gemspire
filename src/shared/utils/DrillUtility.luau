@@ -27,7 +27,7 @@ end
 
 function DrillUtility:checkDrillBelongsToPlayer(player,drillObject)
 
-	local owner = drillObject:getAttribute("Owner")
+	local owner = drillObject:GetAttribute("Owner")
 
 	return player and (player.UserId == owner)
 

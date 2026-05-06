@@ -20,9 +20,9 @@ function DrillService.init(engineModule)
 
 	game.Workspace.Entities.Drills.ChildAdded:Connect(function(drillObject)
 
-		-- if DrillService:checkDrillBelongsToLocalPlayer(drillObject) then
+		if DrillService:checkDrillBelongsToLocalPlayer(drillObject) then
 			DrillService.placedDrill = engine:get("PlacedDrill").new(drillObject)
-		-- end
+		end
 
 	end)
 
@@ -56,8 +56,18 @@ function DrillService:equipPlayerDrill()
 
 	task.delay(0.1,function()
 		local backpack = Players.LocalPlayer.Backpack
-		local drill = backpack:FindFirstChild("Drill")
-		character.Humanoid:EquipTool(drill)
+		local drill = backpack:FindFirstChild(engine:get("PlayerService").data.drill.type)
+		if not drill then
+			for _, tool in ipairs(backpack:GetChildren()) do
+				if tool:IsA("Tool") and tool:GetAttribute("Type") == "Drill" then
+					drill = tool
+					break
+				end
+			end
+		end
+		if drill then
+			character.Humanoid:EquipTool(drill)
+		end
 	end)
 	
 	
