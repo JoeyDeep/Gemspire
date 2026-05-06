@@ -402,18 +402,18 @@ function GeodeRevealSession:_startEffects(halfA, halfB, geodeModel, color, entry
 		ViewportFrameEffects.outlineByClone(geodeModel, orbColor, self.viewport.CurrentCamera)
 	end
 
-	local traitData = self.LootTraits and self.LootTraits[entry.trait or ""]
-	if traitData and traitData.orbitVisual then
-		local ov = traitData.orbitVisual
-		local n  = ov.numberOfOrbits or 1
-		for i = 1, n do
-			local cfg = {}
-			for k, v in pairs(ov.orbitConfig) do cfg[k] = v end
-			cfg.initialAngle = (2 * math.pi * (i - 1)) / n
-			cfg.camera       = self.viewport.CurrentCamera
-			ViewportFrameEffects.customOrbit(geodeModel, cfg)
-		end
-	end
+	-- local traitData = self.LootTraits and self.LootTraits[entry.trait or ""]
+	-- if traitData and traitData.orbitVisual then
+	-- 	local ov = traitData.orbitVisual
+	-- 	local n  = ov.numberOfOrbits or 1
+	-- 	for i = 1, n do
+	-- 		local cfg = {}
+	-- 		for k, v in pairs(ov.orbitConfig) do cfg[k] = v end
+	-- 		cfg.initialAngle = (2 * math.pi * (i - 1)) / n
+	-- 		cfg.camera       = self.viewport.CurrentCamera
+	-- 		ViewportFrameEffects.customOrbit(geodeModel, cfg)
+	-- 	end
+	-- end
 end
 
 function GeodeRevealSession:_stopEffects()
