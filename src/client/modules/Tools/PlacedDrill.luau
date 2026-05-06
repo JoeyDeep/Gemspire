@@ -148,7 +148,7 @@ function PlacedDrill:spawnLoot(lootData)
 
 		local randomPosition = self:randomPositionInPart(targetPart)
 
-		clonedLoot.Position = randomPosition
+		clonedLoot:PivotTo(CFrame.new(randomPosition))
 
 		CollectionService:AddTag(clonedLoot,"loot")
 
