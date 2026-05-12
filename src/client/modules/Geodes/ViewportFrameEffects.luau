@@ -1,8 +1,32 @@
 local ViewportFrameEffects = {}
 
-local TweenService    = game:GetService("TweenService")
-local RunService      = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local TweenService        = game:GetService("TweenService")
+local RunService          = game:GetService("RunService")
+local UserInputService    = game:GetService("UserInputService")
+local ReplicatedStorage   = game:GetService("ReplicatedStorage")
+
+local InstanceCache = require(ReplicatedStorage.Packages.InstanceCache)
+
+local _ballCache
+local _cylinderCache
+
+local function ensureCaches()
+	if _ballCache then return end
+
+	local ballTemplate = Instance.new("Part")
+	ballTemplate.Shape      = Enum.PartType.Ball
+	ballTemplate.Anchored   = true
+	ballTemplate.CanCollide = false
+	ballTemplate.CastShadow = false
+	_ballCache = InstanceCache.new(ballTemplate, 50)
+
+	local cylinderTemplate = Instance.new("Part")
+	cylinderTemplate.Shape      = Enum.PartType.Cylinder
+	cylinderTemplate.Anchored   = true
+	cylinderTemplate.CanCollide = false
+	cylinderTemplate.CastShadow = false
+	_cylinderCache = InstanceCache.new(cylinderTemplate, 20)
+end
 
 local function tween(instance, duration, props, style, direction)
 	local t = TweenService:Create(
@@ -167,20 +191,17 @@ function ViewportFrameEffects.burst(worldModel, config)
 	local duration    = config.duration or 0.7
 	local upwardBias  = config.upwardBias or 0.4
 
+	ensureCaches()
 	for _ = 1, count do
 		local s = baseSize * (1 + math.random() * sizeVar)
 
-		local spark = Instance.new("Part")
-		spark.Shape = Enum.PartType.Ball
-		spark.Size = Vector3.new(s, s, s)
-		spark.Material = Enum.Material.Neon
-		spark.Color = color
+		local spark = _ballCache:GetInstance()
+		spark.Size        = Vector3.new(s, s, s)
+		spark.Material    = Enum.Material.Neon
+		spark.Color       = color
 		spark.Transparency = 0
-		spark.Anchored = true
-		spark.CanCollide = false
-		spark.CastShadow = false
-		spark.CFrame = CFrame.new(origin)
-		spark.Parent = worldModel
+		spark.CFrame      = CFrame.new(origin)
+		spark.Parent      = worldModel
 
 		local dx = math.random() * 2 - 1
 		local dy = math.random() * upwardBias + (1 - upwardBias) * (math.random() * 2 - 1)
@@ -193,15 +214,15 @@ function ViewportFrameEffects.burst(worldModel, config)
 		cfVal.Value = spark.CFrame
 		cfVal.Parent = spark
 		cfVal:GetPropertyChangedSignal("Value"):Connect(function()
-			if spark.Parent then
-				spark.CFrame = cfVal.Value
-			end
+			if spark.Parent then spark.CFrame = cfVal.Value end
 		end)
 
 		tween(cfVal, life, { Value = CFrame.new(targetPos) })
 		tween(spark, life, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 			.Completed:Connect(function()
-				spark:Destroy()
+				cfVal:Destroy()
+				spark.Parent = _ballCache.CurrentCacheParent
+				_ballCache:ReturnInstance(spark)
 			end)
 	end
 end
@@ -237,42 +258,34 @@ function ViewportFrameEffects.startStreamer(worldModel, config)
 		return CFrame.fromMatrix(pos, dir, dir:Cross(up).Unit)
 	end
 
+	ensureCaches()
 	local function emit()
-		-- Pick a random point on the surface of a sphere, then launch perpendicular to it
 		local sx = math.random() * 2 - 1
 		local sy = math.random() * 2 - 1
 		local sz = math.random() * 2 - 1
 		local normal   = Vector3.new(sx, sy, sz).Unit
 		local startPos = origin + normal * spawnRadius
-		local dir      = normal  -- perpendicular to sphere surface
+		local dir      = normal
 
 		local dist = speed * (0.5 + math.random() * 0.5)
 		local life = duration * (0.7 + math.random() * 0.5)
 		local targetPos = startPos + dir * dist
 
-		local ball = Instance.new("Part")
-		ball.Shape = Enum.PartType.Ball
-		ball.Size = Vector3.new(ballSize, ballSize, ballSize)
-		ball.Material = Enum.Material.Neon
-		ball.Color = color
+		local ball = _ballCache:GetInstance()
+		ball.Size        = Vector3.new(ballSize, ballSize, ballSize)
+		ball.Material    = Enum.Material.Neon
+		ball.Color       = color
 		ball.Transparency = 0
-		ball.Anchored = true
-		ball.CanCollide = false
-		ball.CastShadow = false
-		ball.CFrame = CFrame.new(startPos)
-		ball.Parent = worldModel
+		ball.CFrame      = CFrame.new(startPos)
+		ball.Parent      = worldModel
 
-		local trail = Instance.new("Part")
-		trail.Shape = Enum.PartType.Cylinder
-		trail.Size = Vector3.new(0.001, trailWidth, trailWidth)
-		trail.Material = Enum.Material.Neon
-		trail.Color = color
+		local trail = _cylinderCache:GetInstance()
+		trail.Size        = Vector3.new(0.001, trailWidth, trailWidth)
+		trail.Material    = Enum.Material.Neon
+		trail.Color       = color
 		trail.Transparency = 0.35
-		trail.Anchored = true
-		trail.CanCollide = false
-		trail.CastShadow = false
-		trail.CFrame = CFrame.new(startPos)
-		trail.Parent = worldModel
+		trail.CFrame      = CFrame.new(startPos)
+		trail.Parent      = worldModel
 
 		local cfVal = Instance.new("CFrameValue")
 		cfVal.Value = ball.CFrame
@@ -286,7 +299,7 @@ function ViewportFrameEffects.startStreamer(worldModel, config)
 			local trailVec = ball.CFrame.Position - startPos
 			local len = trailVec.Magnitude
 			if len < 0.01 then return end
-			trail.Size = Vector3.new(len, trailWidth, trailWidth)
+			trail.Size  = Vector3.new(len, trailWidth, trailWidth)
 			trail.CFrame = cylinderCFrame(startPos + trailVec * 0.5, trailVec.Unit)
 		end)
 
@@ -295,8 +308,11 @@ function ViewportFrameEffects.startStreamer(worldModel, config)
 		tween(trail, life, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 			.Completed:Connect(function()
 				conn:Disconnect()
-				ball:Destroy()
-				trail:Destroy()
+				cfVal:Destroy()
+				ball.Parent  = _ballCache.CurrentCacheParent
+				trail.Parent = _cylinderCache.CurrentCacheParent
+				_ballCache:ReturnInstance(ball)
+				_cylinderCache:ReturnInstance(trail)
 			end)
 	end
 
