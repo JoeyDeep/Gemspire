@@ -17,18 +17,7 @@ local DEFAULT_AMBIENT         = Color3.fromRGB(200, 200, 200)
 local RARITY_ORB_COLORS = {
 	[2] = Color3.fromRGB(80,  140, 255), -- uncommon: blue
 	[3] = Color3.fromRGB(160, 60,  255), -- rare: purple
-	[4] = Color3.fromRGB(255, 68, 0),  -- legendary: orange
-}
-
-local TRAIT_DISPLAY = {
-	none    = { name = "No Trait", color = Color3.fromRGB(180, 180, 180) },
-	ancient = { name = "Ancient",  color = Color3.fromRGB(80,  160, 255) },
-	cursed  = { name = "Cursed",   color = Color3.fromRGB(180, 60,  255) },
-}
-local TRAIT_SOUNDS = {
-	none    = "RevealCommon",
-	ancient = "RevealAncient",
-	cursed  = "RevealCursed",
+	[4] = Color3.fromRGB(255, 68, 0),    -- legendary: orange
 }
 
 local function colorGeodeParts(halves, partName, color)
@@ -68,10 +57,11 @@ function GeodeRevealSession.new(engine, results)
 	self.slotIndex         = 0
 	self.rackEntries       = {}
 	self.activeGeode       = nil
-	self._stopRays    = nil
-	self._stopLight   = nil
-	self._stopStreamer = nil
-	self._stopSparkle  = nil
+	self._stopRays       = nil
+	self._stopLight      = nil
+	self._stopStreamer   = nil
+	self._stopSparkle    = nil
+	self._stopImageOrbit = nil
 	self._autoMode    = nil
 	self._crackSpeed  = 1.0
 	return self
@@ -158,8 +148,6 @@ end
 -- ─── Per-geode orchestration ─────────────────────────────────────────────────
 
 function GeodeRevealSession:_presentGeode(i, entry)
-	local trait          = entry.trait or "none"
-	local traitDisplay   = TRAIT_DISPLAY[trait] or TRAIT_DISPLAY["none"]
 	local geodeColor     = entry.color or Color3.fromRGB(228, 228, 228)
 	local colorSecondary = entry.colorSecondary or geodeColor
 
@@ -182,14 +170,18 @@ function GeodeRevealSession:_presentGeode(i, entry)
 		colorGeodeParts({ halfA, halfB }, "Part", colorSecondary)
 	end
 
+	local traitData = self.LootTraits and self.LootTraits[entry.trait or ""]
+	local soundName = (traitData and traitData.reveal_sound) or "RevealCommon"
+
 	if self._autoMode then
-		self:_showLabel(entry, i, trait, traitDisplay)
-		self:_crack(halfA, halfB, i == 1, TRAIT_SOUNDS[trait] or TRAIT_SOUNDS.none, geodeColor)
+		self:_showLabel(entry, i)
+		self:_crack(halfA, halfB, i == 1, soundName, geodeColor)
 	else
-		self:_crack(halfA, halfB, i == 1, TRAIT_SOUNDS[trait] or TRAIT_SOUNDS.none, geodeColor)
-		self:_showLabel(entry, i, trait, traitDisplay)
+		self:_crack(halfA, halfB, i == 1, soundName, geodeColor)
+		self:_showLabel(entry, i)
 	end
-	self:_startEffects(halfA, halfB, geodeModel, geodeColor, entry)
+	self:_startRevealEffects(halfA, halfB, geodeColor)
+	self:_applyTraitEffect(geodeModel, entry)
 
 	self.activeGeode = { geodeModel = geodeModel, halfA = halfA, halfB = halfB, effect = effect, countInPage = countInPage, entry = entry }
 end
@@ -258,24 +250,16 @@ function GeodeRevealSession:_crack(halfA, halfB, isFirst, soundName, geodeColor)
 	})
 end
 
-function GeodeRevealSession:_showLabel(entry, i, trait, traitDisplay)
-	local label       = self.UI.LootLabel
-	local contentName = (self.Loot[entry.contentKey] and self.Loot[entry.contentKey].name)
-		or entry.contentKey or "Unknown"
-	if trait ~= "none" then
-		label.Text = string.format(
-			'<font color="#%s">%s</font><font color="#FFFFFF"> %s Geode</font>',
-			toHex(traitDisplay.color), traitDisplay.name, contentName)
-	else
-		label.Text = string.format('<font color="#FFFFFF">%s Geode</font>', contentName)
-	end
-	label.TextTransparency            = 1
-	label.Visible                     = true
-	self.UI.ContinueButton.Text       = (i < #self.results) and "Next" or "Done"
-	self.UI.ContinueButton.Visible    = not self._autoMode
-	local showCrack                   = i < #self.results and not self._autoMode
-	self.UI.CrackBunchButton.Visible  = showCrack
-	self.UI.CrackAllButton.Visible    = showCrack
+function GeodeRevealSession:_showLabel(entry, i)
+	local label = self.UI.LootLabel
+	label.Text             = self:_buildLabelText(entry)
+	label.TextTransparency = 1
+	label.Visible          = true
+	self.UI.ContinueButton.Text      = (i < #self.results) and "Next" or "Done"
+	self.UI.ContinueButton.Visible   = not self._autoMode
+	local showCrack                  = i < #self.results and not self._autoMode
+	self.UI.CrackBunchButton.Visible = showCrack
+	self.UI.CrackAllButton.Visible   = showCrack
 	self.QuickTween(label, 0.3, { TextTransparency = 0 })
 end
 
@@ -307,7 +291,8 @@ function GeodeRevealSession:_sendToSlot(geodeModel, effect, countInPage, entry)
 		geodeModel, effect, self.slotIndex, countInPage, self.QuickTween)
 	local button = self:_createOverlayButton(geodeModel, entry)
 	self:_fitButtonToSlot(button, geodeModel)
-	table.insert(self.rackEntries, { geode = geodeModel, button = button })
+	table.insert(self.rackEntries, { geode = geodeModel, button = button, stopImageOrbit = self._stopImageOrbit })
+	self._stopImageOrbit = nil
 	self.slotIndex += 1
 end
 
@@ -335,6 +320,7 @@ end
 function GeodeRevealSession:_destroyOverlayButtons()
 	for _, e in pairs(self.rackEntries) do
 		if e.button and e.button.Parent then e.button:Destroy() end
+		if e.stopImageOrbit then e.stopImageOrbit() end
 	end
 end
 
@@ -354,14 +340,13 @@ function GeodeRevealSession:_projectToScale(worldPos)
 end
 
 function GeodeRevealSession:_buildLabelText(entry)
-	local trait        = entry.trait or "none"
-	local traitDisplay = TRAIT_DISPLAY[trait] or TRAIT_DISPLAY["none"]
-	local contentName  = (self.Loot[entry.contentKey] and self.Loot[entry.contentKey].name)
+	local traitData   = self.LootTraits and self.LootTraits[entry.trait or ""]
+	local contentName = (self.Loot[entry.contentKey] and self.Loot[entry.contentKey].name)
 		or entry.contentKey or "Unknown"
-	if trait ~= "none" then
+	if traitData and traitData.display_color then
 		return string.format(
 			'<font color="#%s">%s</font><font color="#FFFFFF"> %s Geode</font>',
-			toHex(traitDisplay.color), traitDisplay.name, contentName)
+			toHex(traitData.display_color), traitData.name, contentName)
 	else
 		return string.format('<font color="#FFFFFF">%s Geode</font>', contentName)
 	end
@@ -380,7 +365,7 @@ end
 
 -- ─── Effect managers ─────────────────────────────────────────────────────────
 
-function GeodeRevealSession:_startEffects(halfA, halfB, geodeModel, color, entry)
+function GeodeRevealSession:_startRevealEffects(halfA, halfB, color)
 	self._stopRays    = self:_startRays()
 	self._stopLight   = self:_startViewportLight(color)
 	self._stopStreamer = ViewportFrameEffects.startStreamer(self.worldModel, {
@@ -395,32 +380,27 @@ function GeodeRevealSession:_startEffects(halfA, halfB, geodeModel, color, entry
 		duration         = 1.2,
 	})
 	self._stopSparkle = ViewportFrameEffects.startSparkle(halfA, halfB)
+end
 
+function GeodeRevealSession:_applyTraitEffect(geodeModel, entry)
 	local lootData = entry and self.Loot[entry.contentKey]
 	local orbColor = lootData and RARITY_ORB_COLORS[lootData.rarity]
 	if orbColor then
 		ViewportFrameEffects.outlineByClone(geodeModel, orbColor, self.viewport.CurrentCamera)
 	end
 
-	-- local traitData = self.LootTraits and self.LootTraits[entry.trait or ""]
-	-- if traitData and traitData.orbitVisual then
-	-- 	local ov = traitData.orbitVisual
-	-- 	local n  = ov.numberOfOrbits or 1
-	-- 	for i = 1, n do
-	-- 		local cfg = {}
-	-- 		for k, v in pairs(ov.orbitConfig) do cfg[k] = v end
-	-- 		cfg.initialAngle = (2 * math.pi * (i - 1)) / n
-	-- 		cfg.camera       = self.viewport.CurrentCamera
-	-- 		ViewportFrameEffects.customOrbit(geodeModel, cfg)
-	-- 	end
-	-- end
+	local traitData = self.LootTraits and self.LootTraits[entry.trait or ""]
+	if traitData and traitData.imageVisual then
+		self._stopImageOrbit = ViewportFrameEffects.imageOrbit(
+			geodeModel, traitData.imageVisual, self.viewport, self.UI)
+	end
 end
 
 function GeodeRevealSession:_stopEffects()
-	if self._stopRays    then self._stopRays()    self._stopRays    = nil end
-	if self._stopLight   then self._stopLight()   self._stopLight   = nil end
-	if self._stopStreamer then self._stopStreamer() self._stopStreamer = nil end
-	if self._stopSparkle then self._stopSparkle() self._stopSparkle = nil end
+	if self._stopRays     then self._stopRays();     self._stopRays     = nil end
+	if self._stopLight    then self._stopLight();    self._stopLight    = nil end
+	if self._stopStreamer then self._stopStreamer(); self._stopStreamer = nil end
+	if self._stopSparkle  then self._stopSparkle();  self._stopSparkle  = nil end
 end
 
 function GeodeRevealSession:_startRays()

@@ -100,7 +100,7 @@ function ViewportFrameEffects.hoverLabel(parent, position, size, text)
 	local inputConn = nil
 
 	local function hidePopup()
-		if inputConn then inputConn:Disconnect() inputConn = nil end
+		if inputConn then inputConn:Disconnect(); inputConn = nil end
 		if popup and popup.Parent then popup:Destroy() end
 		popup = nil
 	end
@@ -491,6 +491,94 @@ function ViewportFrameEffects.customOrbit(model, config)
 		active = false
 		conn:Disconnect()
 		if ball.Parent then ball:Destroy() end
+	end
+end
+
+-- Places spinning ImageLabels in 2D UI space directly over the geode's projected
+-- screen position. BillboardGuis do not render inside ViewportFrame WorldModels,
+-- so this approach parents labels to the 2D UI layer and re-projects the model's
+-- world pivot every Heartbeat to keep them tracking the geode as it moves.
+--
+-- Returns a stop function that destroys the labels.
+--
+-- config fields:
+--   size    UDim2   label size in pixels, e.g. UDim2.fromOffset(250, 250)
+--   layers  table   array of layer descriptors:
+--     image         string   rbxassetid for the image
+--     rotation      number   initial rotation in degrees (default 0)
+--     speed         number   spin speed in degrees/second, negative = counter-clockwise (default 30)
+--     transparency  number   initial ImageTransparency (default 0)
+function ViewportFrameEffects.imageOrbit(model, config, viewport, uiParent)
+	local sizeMultiplier = config.size or 2
+	local layers         = config.layers or {}
+
+	local labels = {}
+	for i, layer in ipairs(layers) do
+		local img                  = Instance.new("ImageLabel")
+		img.BackgroundTransparency = 1
+		img.Size                   = UDim2.fromOffset(0, 0)
+		img.AnchorPoint            = Vector2.new(0.5, 0.5)
+		img.Position               = UDim2.fromScale(0.5, 0.5)
+		img.Image                  = layer.image or ""
+		img.ImageTransparency      = layer.transparency or 0
+		img.Rotation               = layer.rotation or 0
+		img.ZIndex                 = 1
+		img.ScaleType              = Enum.ScaleType.Fit
+		img.Parent                 = uiParent
+		table.insert(labels, { label = img, speed = layer.speed or 30 })
+	end
+
+	local active = true
+
+	local function destroyLabels()
+		for _, entry in ipairs(labels) do
+			if entry.label.Parent then entry.label:Destroy() end
+		end
+	end
+
+	model.Destroying:Connect(function()
+		active = false
+		destroyLabels()
+	end)
+
+	local conn
+	conn = RunService.Heartbeat:Connect(function(dt)
+		if not active or not model.Parent then
+			conn:Disconnect()
+			return
+		end
+
+		local cam    = viewport.CurrentCamera
+		local vpSize = viewport.AbsoluteSize
+		local aspect = vpSize.X / vpSize.Y
+		local local3 = cam.CFrame:PointToObjectSpace(model:GetPivot().Position)
+		local depth  = -local3.Z
+
+		if depth > 0 then
+			local halfTan = math.tan(math.rad(cam.FieldOfView / 2))
+			local u = ( local3.X / (depth * halfTan * aspect) + 1) / 2
+			local v = (-local3.Y / (depth * halfTan)           + 1) / 2
+
+			local sizeRef       = model:FindFirstChildOfClass("Model") or model
+			local _, modelSize  = sizeRef:GetBoundingBox()
+			local extent        = math.max(modelSize.X, modelSize.Y, modelSize.Z)
+			local pixelsPerStud = vpSize.Y / (2 * halfTan * depth)
+			local px            = math.round(extent * pixelsPerStud * sizeMultiplier)
+			local imgSize       = UDim2.fromOffset(px, px)
+			local screenPos     = UDim2.fromScale(u, v)
+
+			for _, entry in ipairs(labels) do
+				entry.label.Size     = imgSize
+				entry.label.Position = screenPos
+				entry.label.Rotation = (entry.label.Rotation + entry.speed * dt) % 360
+			end
+		end
+	end)
+
+	return function()
+		active = false
+		conn:Disconnect()
+		destroyLabels()
 	end
 end
 

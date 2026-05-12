@@ -192,6 +192,8 @@ function GeodeAnimations:clearRack(rackEntries, QuickTween)
 			for _, part in pairs(e.geode:GetDescendants()) do
 				if part:IsA("BasePart") then
 					QuickTween(part, 0.2, { Transparency = 1 })
+				elseif part:IsA("ImageLabel") then
+					QuickTween(part, 0.2, { ImageTransparency = 1 })
 				end
 			end
 		end
