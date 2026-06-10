@@ -210,6 +210,7 @@ function DrillService:canPlayerPlaceDrill(player,targetPosition)
 
 	local PlayerService = engine:get("PlayerService")
 	local playerData = PlayerService:getData(player)
+	if not playerData.drill or not playerData.drill.type then return false end
 	local drillDensity = Drills[playerData.drill.type].density
 
 	

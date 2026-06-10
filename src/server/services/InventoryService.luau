@@ -185,6 +185,11 @@ function InventoryService.init(engineModule)
 	end)
 end
 
+local function giveTestItems(playerClass)
+	local HttpService = game:GetService("HttpService")
+	for _ = 1, 3 do local id = HttpService:GenerateGUID(false); local entry = InventoryService:addLootEntry(playerClass.player, "titanium", 1, nil, id); if entry then InventoryService:drawHoldLoot(playerClass, entry, id) end end
+end
+
 function InventoryService.register(playerClass)
 	local player = playerClass.player
 
@@ -238,14 +243,9 @@ function InventoryService.register(playerClass)
 		warn("[InventoryService] Vault tool missing or not a Tool.")
 	end
 
-	local drillTool = storage.Tools.Drills.Drill:Clone()
-	drillTool.Name = playerData.drill.type
-	drillTool:SetAttribute("Type", "Drill")
-	drillTool:SetAttribute("BackpackIndex", 3)
-	local Drills = engine:get("Drills")
-	local drillData = Drills and Drills[playerData.drill.type]
-	applyToolDisplay(drillTool, Icons.Drill, drillData and drillData.name or playerData.drill.type)
-	drillTool.Parent = player.Backpack
+	if playerData.drill and playerData.drill.type then
+		InventoryService:giveDrillTool(player, playerData.drill.type)
+	end
 
 	-- LOOT!
 	for _, loot in pairs(playerData.inventory.loot) do
@@ -256,6 +256,20 @@ function InventoryService.register(playerClass)
 		CharacterAdded(player.Character)
 	end
 	player.CharacterAdded:Connect(CharacterAdded)
+
+	giveTestItems(playerClass)
+end
+
+function InventoryService:giveDrillTool(player, drillType)
+	local storage = ReplicatedStorage.Storage
+	local drillTool = storage.Tools.Drills.Drill:Clone()
+	drillTool.Name = drillType
+	drillTool:SetAttribute("Type", "Drill")
+	drillTool:SetAttribute("BackpackIndex", 3)
+	local Drills = engine:get("Drills")
+	local drillData = Drills and Drills[drillType]
+	applyToolDisplay(drillTool, Icons.Drill, drillData and drillData.name or drillType)
+	drillTool.Parent = player.Backpack
 end
 
 function InventoryService:drawHoldLoot(playerClass, lootData, id)

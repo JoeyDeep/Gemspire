@@ -21,7 +21,7 @@ return {
 	},
 
 	drill = {
-		type = "steel",
+		type = nil,
 		spawnTime = nil,
 		position = nil,
 		-- drill location in world
@@ -29,7 +29,13 @@ return {
 
 	quests = {
 		completed = {},
-		active = {},
+		active = {
+			TalkToGemal = {
+				currentNode    = "talkToGemal",
+				currentTasks   = { { current = 0, goal = 1 } },
+				completedNodes = {},
+			},
+		},
 	},
 	dialog_history = {},
 	container = {}, -- { now = 0, max = 0, quality = 0-100 }

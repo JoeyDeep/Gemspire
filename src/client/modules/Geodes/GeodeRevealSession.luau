@@ -115,9 +115,6 @@ function GeodeRevealSession:_teardown()
 	local GA = self.GeodeAnimations
 	self:_destroyOverlayButtons()
 	GA:clearRack(self.rackEntries, self.QuickTween)
-	if self.worldModel then
-		for _, child in pairs(self.worldModel:GetChildren()) do child:Destroy() end
-	end
 
 	self.UI.ContinueButton.Visible    = false
 	self.UI.CrackBunchButton.Visible  = false

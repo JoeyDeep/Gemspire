@@ -143,9 +143,6 @@ function GeodeAnimations:setupViewport(viewport)
 		worldModel = Instance.new("WorldModel")
 		worldModel.Parent = viewport
 	end
-	for _, child in pairs(worldModel:GetChildren()) do
-		child:Destroy()
-	end
 	local cam = viewport:FindFirstChildOfClass("Camera")
 	if not cam then
 		cam = Instance.new("Camera")

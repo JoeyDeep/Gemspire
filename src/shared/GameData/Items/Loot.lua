@@ -74,6 +74,27 @@ return {
 			cursed = 0.05,
 		},
 	},
+	titanium = {
+		name = "Titanium Ore",
+		description = "A lightweight yet incredibly strong metal ore, prized by engineers and craftspeople.",
+		rarity = 1,
+		color = Color3.fromRGB(185, 190, 205),
+		colorSecondary = Color3.fromRGB(135, 145, 170),
+
+		material_type = "Metal",
+		craft_luck = 0.03,
+		craft_modifiers = {
+			strength = 0.08,
+		},
+
+		value_per_kg = 350,
+		kg_range = { min = 0.5, max = 2 },
+		traits = {
+			none = 0.82,
+			ancient = 0.13,
+			cursed = 0.05,
+		},
+	},
 	garnet = {
 		name = "Garnet",
 		description = "A group of silicate minerals used as abrasives and in jewelry.",

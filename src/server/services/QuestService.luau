@@ -59,8 +59,38 @@ function QuestService:addQuest(player, id)
     end
 
     playerClass.localData.quests[id] = questClass.new(player)
+    QuestService:checkExistingInventory(player, id)
 
     return true -- quest added successfully
+end
+
+function QuestService:checkExistingInventory(player, id)
+    local PlayerService        = engine:get("PlayerService")
+    local RequirementEvaluator = engine:get("RequirementEvaluator")
+    local playerClass          = PlayerService:get(player)
+    local playerData           = PlayerService:getData(player)
+    if not playerClass or not playerData then return end
+
+    local questInstance = playerClass.localData.quests[id]
+    if not questInstance then return end
+
+    local currentNodeData = questInstance.questData.nodes[questInstance.currentNode]
+    if not currentNodeData or not currentNodeData.tasks then return end
+
+    local loot = playerData.inventory and playerData.inventory.loot or {}
+
+    for taskIndex, task in ipairs(currentNodeData.tasks) do
+        if task.type == "collectLoot" then
+            local counted = 0
+            for _, entry in ipairs(loot) do
+                if counted >= task.goal then break end
+                if RequirementEvaluator:evaluateTask(task, { lootKey = entry.lootKey, kg = entry.kg, trait = entry.trait }, playerData) then
+                    questInstance:incrementTask(taskIndex)
+                    counted += 1
+                end
+            end
+        end
+    end
 end
 
 function QuestService:loadActiveQuests(playerClass)
@@ -82,6 +112,22 @@ function QuestService:loadActiveQuests(playerClass)
     end
 end
 
+function QuestService:removeItems(player, removeItems)
+    local InventoryService = engine:get("InventoryService")
+    local PlayerService    = engine:get("PlayerService")
+    local playerData       = PlayerService:getData(player)
+    for _, item in ipairs(removeItems) do
+        local removed = 0
+        for _, entry in ipairs(playerData.inventory.loot) do
+            if removed >= item.count then break end
+            if entry.lootKey == item.lootKey then
+                InventoryService:removeLootEntry(player, entry.id, item.lootKey)
+                removed += 1
+            end
+        end
+    end
+end
+
 function QuestService:giveRewards(player, rewards)
     local PlayerService = engine:get("PlayerService")
     local playerClass = PlayerService:get(player)
@@ -98,6 +144,28 @@ function QuestService:giveRewards(player, rewards)
     if rewards.xp then
         playerClass.profile.Data.xp += rewards.xp
         table.insert(updateTable, "xp")
+    end
+    if rewards.items then
+        local InventoryService = engine:get("InventoryService")
+        local HttpService = game:GetService("HttpService")
+        for _, item in ipairs(rewards.items) do
+            local id = HttpService:GenerateGUID(false)
+            local entry = InventoryService:addLootEntry(player, item.lootKey, item.kg, item.trait, id)
+            if entry then
+                InventoryService:drawHoldLoot(playerClass, entry, id)
+            end
+        end
+        table.insert(updateTable, "inventory")
+    end
+    if rewards.removeItems then
+        QuestService:removeItems(player, rewards.removeItems)
+        table.insert(updateTable, "inventory")
+    end
+    if rewards.drill then
+        playerClass.profile.Data.drill = playerClass.profile.Data.drill or {}
+        playerClass.profile.Data.drill.type = rewards.drill
+        engine:get("InventoryService"):giveDrillTool(player, rewards.drill)
+        table.insert(updateTable, "drill")
     end
 
     -- @TODO: special fire to client for reward animations?

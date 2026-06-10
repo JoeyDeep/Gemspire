@@ -75,9 +75,9 @@ function InventoryUtils.ensurePlayerDataShape(playerData)
 	ensureTable(equipped, "equipment", {})
 
 	local drill = ensureTable(playerData, "drill", {})
-	if typeof(drill.type) ~= "string" then
-		drill.type = "steel"
-	end
+	-- if typeof(drill.type) ~= "string" then
+	-- 	drill.type = "steel"
+	-- end
 
 	ensureTable(playerData, "container", {})
 	ensureTable(playerData, "dialog_history", {})
