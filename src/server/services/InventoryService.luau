@@ -188,6 +188,9 @@ end
 local function giveTestItems(playerClass)
 	local HttpService = game:GetService("HttpService")
 	for _ = 1, 3 do local id = HttpService:GenerateGUID(false); local entry = InventoryService:addLootEntry(playerClass.player, "titanium", 1, nil, id); if entry then InventoryService:drawHoldLoot(playerClass, entry, id) end end
+	playerClass.profile.Data.coins += 5000
+	engine:get("QuestService").events.coinsChanged:Fire(playerClass.player, playerClass.profile.Data.coins)
+	playerClass:updateClient({ "coins" })
 end
 
 function InventoryService.register(playerClass)
@@ -363,6 +366,7 @@ function InventoryService:sellLoot(player, parameters)
 	end
 
 	playerData.coins += totalEarned
+	engine:get("QuestService").events.coinsChanged:Fire(player, playerData.coins)
 	engine.events.Inventory:FireClient(
 		player,
 		"sellComplete",
@@ -716,6 +720,7 @@ function InventoryService:buyItem(player, data)
 
 	local oldItemName = playerData.equipped[typeKey]
 	playerData.coins -= price
+	engine:get("QuestService").events.coinsChanged:Fire(player, playerData.coins)
 
 	playerData.inventory.oldEquipment = playerData.inventory.oldEquipment or { pickaxe = {}, kit = {}, equipment = {} }
 	playerData.inventory.oldEquipment[typeKey] = playerData.inventory.oldEquipment[typeKey] or {}

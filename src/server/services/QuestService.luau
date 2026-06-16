@@ -3,14 +3,20 @@ local Signal = require(game:GetService("ReplicatedStorage").Packages.Signal)
 local QuestService = {
 
     events = {
-        collectLoot = Signal.new(),
-        speakToNPC = Signal.new(),
-    }
+        collectLoot  = Signal.new(),
+        speakToNPC   = Signal.new(),
+        coinsChanged = Signal.new(),
+    },
+
+    taskEventMap = {
+        haveCoins = "coinsChanged",
+    },
 }
 
 local engine
 function QuestService.init(engineModule)
     engine = engineModule
+    engine:get("QuestBase") -- initialize early
     local PlayerService = engine:get("PlayerService")
 
     engine.events.Quests.OnServerEvent:Connect(function(player, topic, data)
@@ -58,7 +64,8 @@ function QuestService:addQuest(player, id)
         end
     end
 
-    playerClass.localData.quests[id] = questClass.new(player)
+    local QuestBase = engine:get("QuestBase")
+    playerClass.localData.quests[id] = QuestBase.new(player, questClass)
     QuestService:checkExistingInventory(player, id)
 
     return true -- quest added successfully
@@ -106,7 +113,8 @@ function QuestService:loadActiveQuests(playerClass)
         if not playerClass.localData.quests[questId] then
             local questClass = engine:get(`Quest_{questId}`)
             if questClass then
-                playerClass.localData.quests[questId] = questClass.new(playerClass.player, questData)
+                local QuestBase = engine:get("QuestBase")
+                playerClass.localData.quests[questId] = QuestBase.new(playerClass.player, questClass, questData)
             end
         end
     end
@@ -139,6 +147,12 @@ function QuestService:giveRewards(player, rewards)
 
     if rewards.coins then
         playerClass.profile.Data.coins += rewards.coins
+        QuestService.events.coinsChanged:Fire(player, playerClass.profile.Data.coins)
+        table.insert(updateTable, "coins")
+    end
+    if rewards.removeCoins then
+        playerClass.profile.Data.coins = math.max(0, playerClass.profile.Data.coins - rewards.removeCoins)
+        QuestService.events.coinsChanged:Fire(player, playerClass.profile.Data.coins)
         table.insert(updateTable, "coins")
     end
     if rewards.xp then

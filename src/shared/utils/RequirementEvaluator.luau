@@ -25,6 +25,10 @@ Evaluator.standardRequirements = {
         return true
     end,
 
+    hasCoins = function(playerData, value)
+        return (playerData.coins or 0) >= value
+    end,
+
     spoken_to = function(playerData, value)
         local dialogHistory = playerData.dialog_history or {}
         return dialogHistory[value] ~= nil
@@ -41,6 +45,10 @@ Evaluator.standardRequirements = {
 }
 
 Evaluator.taskRequirements = {
+    haveCoins = function(playerData, data, taskData)
+        return (playerData.coins or 0) >= (taskData.amount or 0)
+    end,
+
     collectLoot = function(playerData, data, taskData)
         local requiredLootKey = taskData.lootKey or taskData.item
         if requiredLootKey and data.lootKey ~= requiredLootKey then
@@ -56,9 +64,9 @@ Evaluator.taskRequirements = {
     end,
 
     speakToNPC = function(playerData, data, taskData)
-        if taskData.npcId and data.npc ~= taskData.npcId then
-            return false
-        end
+        if taskData.npcId and data.npc ~= taskData.npcId then return false end
+        if taskData.optionId and (not data.option or data.option.id ~= taskData.optionId) then return false end
+        if taskData.minCoins and (playerData.coins or 0) < taskData.minCoins then return false end
         return true
     end
 }
